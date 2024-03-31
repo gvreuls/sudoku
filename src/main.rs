@@ -217,6 +217,7 @@ impl Board {
         debug_assert!(coords.r < 9);
         debug_assert!(coords.c < 9);
         debug_assert!(coords.b < 9);
+        debug_assert!(coords.i < 9 * 9);
         let mask = BitVec::new_bit(value);
         debug_assert_eq!(self.available_values(coords).unwrap().and(mask), mask);
         self.rows[coords.r as usize].clear(mask);
@@ -230,6 +231,7 @@ impl Board {
         debug_assert!(coords.r < 9);
         debug_assert!(coords.c < 9);
         debug_assert!(coords.b < 9);
+        debug_assert!(coords.i < 9 * 9);
         debug_assert_eq!(self.occupied[coords.i as usize], value);
         let mask = BitVec::new_bit(value);
         debug_assert_eq!(self.rows[coords.r as usize].and(mask), BitVec::new(0));
