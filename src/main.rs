@@ -136,7 +136,6 @@ mod lib {
         }
 
         #[inline(always)]
-        #[must_use]
         pub fn read<U: Iterator<Item = Result<u8, std::io::Error>>>(bytes: &mut U) -> Result<Self, Option<std::io::Error>> {
             let mut board = Self::new();
             let mut coords = Coords::new_indexed(0, 0, 0);
@@ -148,7 +147,7 @@ mod lib {
                                 continue;
                             }
                             if byte != Self::EMPTY {
-                                if byte < b'1' || byte > b'9' {
+                                if !(b'1'..=b'9').contains(&byte) {
                                     return Err(None);
                                 }
                                 let value = byte - b'1';
@@ -190,9 +189,9 @@ mod lib {
                     }
                     print!(" {}", value as char);
                 }
-                print!("\n");
+                println!();
             }
-            print!("\n");
+            println!();
         }
 
         #[inline(always)]
@@ -260,7 +259,7 @@ mod lib {
                 } else if let Some(c) = coords.next() {
                     coords = c;
                 } else {
-                    f(&self);
+                    f(self);
                     return 1;
                 }
             }
