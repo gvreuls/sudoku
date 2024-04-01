@@ -53,7 +53,6 @@ impl Coords {
 
 impl PartialEq for Coords {
     #[inline(always)]
-    #[must_use]
     fn eq(&self, rhs: &Self) -> bool {
         self.i == rhs.i
     }
@@ -201,6 +200,7 @@ impl Board {
         debug_assert!(coords.r < 9);
         debug_assert!(coords.c < 9);
         debug_assert!(coords.b < 9);
+        debug_assert!(coords.i < 9 * 9);
         if self.occupied[coords.i as usize] == Self::EMPTY {
             Some(
                 self.rows[coords.r as usize]
