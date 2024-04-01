@@ -467,7 +467,7 @@ fn main() {
                 iter.next();
             }
         } else {
-            eprintln!("io error or illegal sudoku format!");
+            eprintln!("io error or invalid sudoku!");
         }
     }
 }
