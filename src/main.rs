@@ -465,17 +465,15 @@ fn main() -> Result<(), std::io::Error> {
                     .is_some_and(|result| result.as_ref().is_ok_and(|&byte| byte.is_ascii_whitespace()))
                 {
                     iter.next();
-                }    
-            }
-            Err(result) => {
-                match result {
-                    Some(err) => {
-                        eprintln!("io error: {:?}!", err);
-                        return Err(err);
-                    }
-                    None => eprintln!("invalid sudoku!"),
                 }
             }
+            Err(result) => match result {
+                Some(err) => {
+                    eprintln!("io error: {:?}!", err);
+                    return Err(err);
+                }
+                None => eprintln!("invalid sudoku!"),
+            },
         }
     }
     Ok(())
