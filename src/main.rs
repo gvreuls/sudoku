@@ -450,23 +450,33 @@ mod lib {
     }
 }
 
-fn main() {
+fn main() -> Result<(), std::io::Error> {
     use lib::*;
     use std::io::Read;
 
     let lock = std::io::stdin().lock();
     let mut iter = lock.bytes().peekable();
     while iter.peek().is_some() {
-        if let Ok(mut board) = Board::read(&mut iter) {
-            println!("solutions: {}\n", board.solve_and(|b| b.print()));
-            while iter
-                .peek()
-                .is_some_and(|result| result.as_ref().is_ok_and(|&byte| byte.is_ascii_whitespace()))
-            {
-                iter.next();
+        match Board::read(&mut iter) {
+            Ok(mut board) => {
+                println!("solutions: {}\n", board.solve_and(|b| b.print()));
+                while iter
+                    .peek()
+                    .is_some_and(|result| result.as_ref().is_ok_and(|&byte| byte.is_ascii_whitespace()))
+                {
+                    iter.next();
+                }    
             }
-        } else {
-            eprintln!("io error or invalid sudoku!");
+            Err(result) => {
+                match result {
+                    Some(err) => {
+                        eprintln!("io error: {:?}!", err);
+                        return Err(err);
+                    }
+                    None => eprintln!("invalid sudoku!"),
+                }
+            }
         }
     }
+    Ok(())
 }
