@@ -244,6 +244,7 @@ mod lib {
         }
 
         #[inline(never)]
+        #[must_use]
         fn solve<F: Fn(&Self)>(&mut self, mut coords: Coords, f: &F) -> u128 {
             let mut result = 0;
             loop {
