@@ -454,8 +454,7 @@ fn main() {
     use lib::*;
     use std::io::Read;
 
-    let stdin = std::io::stdin();
-    let lock = stdin.lock();
+    let lock = std::io::stdin().lock();
     let mut iter = lock.bytes().peekable();
     while iter.peek().is_some() {
         if let Ok(mut board) = Board::read(&mut iter) {
