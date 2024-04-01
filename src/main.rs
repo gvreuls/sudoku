@@ -139,7 +139,7 @@ mod lib {
         #[must_use]
         pub fn read<U: Iterator<Item = Result<u8, std::io::Error>>>(bytes: &mut U) -> Result<Self, Option<std::io::Error>> {
             let mut board = Self::new();
-            let mut coords = Coords::new(0, 0);
+            let mut coords = Coords::new_indexed(0, 0, 0);
             loop {
                 if let Some(res) = bytes.next() {
                     match res {
@@ -269,7 +269,7 @@ mod lib {
 
         #[inline(always)]
         pub fn solve_and<F: Fn(&Self)>(&mut self, f: F) -> u128 {
-            self.solve(Coords::new(0, 0), &f)
+            self.solve(Coords::new_indexed(0, 0, 0), &f)
         }
     }
 
