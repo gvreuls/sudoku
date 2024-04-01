@@ -245,7 +245,7 @@ mod lib {
         }
 
         #[inline(never)]
-        pub fn solve<F: Fn(&Self)>(&mut self, mut coords: Coords, f: &F) -> u128 {
+        fn solve<F: Fn(&Self)>(&mut self, mut coords: Coords, f: &F) -> u128 {
             let mut result = 0;
             loop {
                 if let Some(mut values) = self.available_values(coords) {
