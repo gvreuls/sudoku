@@ -1,4 +1,8 @@
 mod lib {
+    const ROOT: usize = 3;
+    const DIM: usize = ROOT * ROOT;
+    const DIM2: usize = DIM * DIM;
+
     #[derive(Debug, Clone, Copy)]
     pub struct Coords {
         r: u8,
@@ -9,7 +13,7 @@ mod lib {
 
     impl Coords {
         #[rustfmt::skip]
-        const TOBOX: [u8; 9 * 9] = [
+        const BOX: [u8; DIM2] = [
             0, 0, 0, 1, 1, 1, 2, 2, 2,
             0, 0, 0, 1, 1, 1, 2, 2, 2,
             0, 0, 0, 1, 1, 1, 2, 2, 2,
@@ -24,17 +28,17 @@ mod lib {
         #[inline(always)]
         #[must_use]
         pub const fn new(row: u8, column: u8) -> Self {
-            Self::new_indexed(row, column, row * 9 + column)
+            Self::new_indexed(row, column, row * (DIM as u8) + column)
         }
 
         #[inline(always)]
         #[must_use]
         const fn new_indexed(row: u8, column: u8, index: u8) -> Self {
-            debug_assert!(row < 9 && column < 9 && index < 9 * 9);
+            debug_assert!(row < (DIM as u8) && column < (DIM as u8) && index < (DIM2 as u8));
             Self {
                 r: row,
                 c: column,
-                b: Self::TOBOX[index as usize],
+                b: Self::BOX[index as usize],
                 i: index,
             }
         }
@@ -63,18 +67,20 @@ mod lib {
     pub struct BitVec(u16);
 
     impl BitVec {
+        pub const ALL_SET: u16 = (1 << DIM) - 1;
+
         #[inline(always)]
         #[must_use]
         pub const fn new(bit_mask: u16) -> Self {
-            debug_assert!(bit_mask < 0x200);
-            BitVec(bit_mask)
+            debug_assert!(bit_mask <= Self::ALL_SET);
+            Self(bit_mask)
         }
 
         #[inline(always)]
         #[must_use]
         pub const fn new_bit(bit_index: u8) -> Self {
-            debug_assert!(bit_index < 9);
-            BitVec(1 << bit_index)
+            debug_assert!(bit_index < DIM as u8);
+            Self(1 << bit_index)
         }
 
         #[inline(always)]
@@ -115,10 +121,10 @@ mod lib {
 
     #[derive(Debug)]
     pub struct Board {
-        rows: [BitVec; 9],
-        columns: [BitVec; 9],
-        boxes: [BitVec; 9],
-        occupied: [u8; 9 * 9],
+        rows: [BitVec; DIM],
+        columns: [BitVec; DIM],
+        boxes: [BitVec; DIM],
+        occupied: [u8; DIM2],
     }
 
     impl Board {
@@ -128,10 +134,10 @@ mod lib {
         #[must_use]
         pub const fn new() -> Self {
             Self {
-                rows: [BitVec(0x1ff); 9],
-                columns: [BitVec(0x1ff); 9],
-                boxes: [BitVec(0x1ff); 9],
-                occupied: [Self::EMPTY; 9 * 9],
+                rows: [BitVec::new(BitVec::ALL_SET); DIM],
+                columns: [BitVec::new(BitVec::ALL_SET); DIM],
+                boxes: [BitVec::new(BitVec::ALL_SET); DIM],
+                occupied: [Self::EMPTY; DIM2],
             }
         }
 
@@ -174,14 +180,14 @@ mod lib {
 
         #[inline(always)]
         pub fn print(&self) {
-            for row in 0..9 {
+            for row in 0..(DIM as u8) {
                 let mut coords = Coords::new(row, 0);
                 let mut value = self.occupied[coords.i as usize];
                 if value != Self::EMPTY {
                     value += b'1';
                 }
                 print!("{}", value as char);
-                for column in 1..9 {
+                for column in 1..(DIM as u8) {
                     coords = Coords::new(row, column);
                     value = self.occupied[coords.i as usize];
                     if value != Self::EMPTY {
@@ -197,10 +203,10 @@ mod lib {
         #[inline(always)]
         #[must_use]
         pub const fn available_values(&self, coords: Coords) -> Option<BitVec> {
-            debug_assert!(coords.r < 9);
-            debug_assert!(coords.c < 9);
-            debug_assert!(coords.b < 9);
-            debug_assert!(coords.i < 9 * 9);
+            debug_assert!(coords.r < DIM as u8);
+            debug_assert!(coords.c < DIM as u8);
+            debug_assert!(coords.b < DIM as u8);
+            debug_assert!(coords.i < DIM2 as u8);
             if self.occupied[coords.i as usize] == Self::EMPTY {
                 Some(
                     self.rows[coords.r as usize]
@@ -214,10 +220,10 @@ mod lib {
 
         #[inline(always)]
         pub fn occupy(&mut self, coords: Coords, value: u8) {
-            debug_assert!(coords.r < 9);
-            debug_assert!(coords.c < 9);
-            debug_assert!(coords.b < 9);
-            debug_assert!(coords.i < 9 * 9);
+            debug_assert!(coords.r < DIM as u8);
+            debug_assert!(coords.c < DIM as u8);
+            debug_assert!(coords.b < DIM as u8);
+            debug_assert!(coords.i < DIM2 as u8);
             let mask = BitVec::new_bit(value);
             debug_assert_eq!(self.available_values(coords).unwrap().and(mask), mask);
             self.rows[coords.r as usize].clear(mask);
@@ -228,10 +234,10 @@ mod lib {
 
         #[inline(always)]
         pub fn leave(&mut self, coords: Coords, value: u8) {
-            debug_assert!(coords.r < 9);
-            debug_assert!(coords.c < 9);
-            debug_assert!(coords.b < 9);
-            debug_assert!(coords.i < 9 * 9);
+            debug_assert!(coords.r < DIM as u8);
+            debug_assert!(coords.c < DIM as u8);
+            debug_assert!(coords.b < DIM as u8);
+            debug_assert!(coords.i < DIM2 as u8);
             debug_assert_eq!(self.occupied[coords.i as usize], value);
             let mask = BitVec::new_bit(value);
             debug_assert_eq!(self.rows[coords.r as usize].and(mask), BitVec::new(0));
@@ -280,13 +286,13 @@ mod lib {
         #[test]
         fn coords() {
             let mut prev: Option<Coords> = None;
-            for row in 0..9 {
-                for column in 0..9 {
+            for row in 0..(DIM as u8) {
+                for column in 0..(DIM as u8) {
                     let coords = Coords::new(row, column);
                     assert_eq!(coords.r, row);
                     assert_eq!(coords.c, column);
-                    assert_eq!(coords.b, (row / 3) * 3 + (column / 3));
-                    assert_eq!(coords.i, row * 9 + column);
+                    assert_eq!(coords.b, (row / ROOT as u8) * ROOT as u8 + (column / ROOT as u8));
+                    assert_eq!(coords.i, row * DIM as u8 + column);
                     if let Some(p) = prev {
                         assert_eq!(p.next(), Some(coords));
                     }
@@ -298,24 +304,24 @@ mod lib {
 
         #[test]
         fn bitvec() {
-            let mut v = BitVec(0x1ff);
-            for bit_index in 0..9 {
+            let mut v = BitVec::new(BitVec::ALL_SET);
+            for bit_index in 0..(DIM as u8) {
                 assert_eq!(BitVec::new_bit(bit_index).0, 1 << bit_index);
                 assert_eq!(v.front(), bit_index);
                 v.pop();
             }
             assert!(BitVec::new(0).is_empty());
-            for bits in 1..0x200 {
+            for bits in 1..=BitVec::ALL_SET {
                 let bv = BitVec::new(bits);
                 assert_eq!(bv.0, bits);
                 assert!(!bv.is_empty());
             }
-            for outer in 0..0x200 {
-                let ov = BitVec(outer);
+            for outer in 0..=BitVec::ALL_SET {
+                let ov = BitVec::new(outer);
                 assert_eq!(ov.0, outer);
-                for inner in 0..0x200 {
-                    let iv = BitVec(inner);
-                    assert_eq!(ov.and(iv), BitVec(outer & inner));
+                for inner in 0..=BitVec::ALL_SET {
+                    let iv = BitVec::new(inner);
+                    assert_eq!(ov.and(iv), BitVec::new(outer & inner));
                     v = ov;
                     v.set(iv);
                     assert_eq!(v.0, outer | inner);
@@ -347,7 +353,7 @@ mod lib {
                 }
             }
 
-            type NaiveBoard = [[u8; 9]; 9];
+            type NaiveBoard = [[u8; DIM]; DIM];
 
             #[inline(always)]
             #[must_use]
@@ -355,25 +361,25 @@ mod lib {
                 if nb[row][column] != Board::EMPTY {
                     return None;
                 }
-                let mut avail = BitVec::new(0x1ff);
-                for c in 0..9 {
+                let mut avail = BitVec::new(BitVec::ALL_SET);
+                for c in 0..DIM {
                     let value = nb[row][c];
-                    if value < 9 {
+                    if value < DIM as u8 {
                         avail.clear(BitVec::new_bit(value));
                     }
                 }
-                for r in 0..9 {
+                for r in 0..DIM {
                     let value = nb[r][column];
-                    if value < 9 {
+                    if value < DIM as u8 {
                         avail.clear(BitVec::new_bit(value));
                     }
                 }
-                let row_ofs = (row / 3) * 3;
-                let column_ofs = (column / 3) * 3;
-                for r in row_ofs..(row_ofs + 3) {
-                    for c in column_ofs..(column_ofs + 3) {
+                let row_ofs = (row / ROOT) * ROOT;
+                let column_ofs = (column / ROOT) * ROOT;
+                for r in row_ofs..(row_ofs + ROOT) {
+                    for c in column_ofs..(column_ofs + ROOT) {
                         let value = nb[r][c];
-                        if value < 9 {
+                        if value < DIM as u8 {
                             avail.clear(BitVec::new_bit(value));
                         }
                     }
@@ -382,8 +388,8 @@ mod lib {
             }
 
             fn check_board(nb: &NaiveBoard, b: &Board) {
-                for r in 0usize..9 {
-                    for c in 0usize..9 {
+                for r in 0usize..DIM {
+                    for c in 0usize..DIM {
                         let coords = Coords::new(r as u8, c as u8);
                         assert_eq!(nb[r][c], b.occupied[coords.i as usize]);
                         assert_eq!(available_values(nb, r, c), b.available_values(coords));
@@ -391,12 +397,12 @@ mod lib {
                 }
             }
 
-            let mut nb = [[Board::EMPTY; 9]; 9];
+            let mut nb = [[Board::EMPTY; DIM]; DIM];
             let mut b = Board::new();
             check_board(&nb, &b);
-            for r in 0..9 {
-                for c in 0..9 {
-                    for v in 0..9 {
+            for r in 0..DIM {
+                for c in 0..DIM {
+                    for v in 0..(DIM as u8) {
                         nb[r][c] = v;
                         let coords = Coords::new(r as u8, c as u8);
                         b.occupy(coords, v);
