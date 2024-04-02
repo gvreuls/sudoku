@@ -28,13 +28,13 @@ mod lib {
         #[inline(always)]
         #[must_use]
         pub const fn new(row: u8, column: u8) -> Self {
-            Self::new_indexed(row, column, row * (DIM as u8) + column)
+            Self::new_indexed(row, column, row * DIM as u8 + column)
         }
 
         #[inline(always)]
         #[must_use]
         const fn new_indexed(row: u8, column: u8, index: u8) -> Self {
-            debug_assert!(row < (DIM as u8) && column < (DIM as u8) && index < (DIM2 as u8));
+            debug_assert!(row < DIM as u8 && column < DIM as u8 && index < DIM2 as u8);
             Self {
                 r: row,
                 c: column,
@@ -388,8 +388,8 @@ mod lib {
             }
 
             fn check_board(nb: &NaiveBoard, b: &Board) {
-                for r in 0usize..DIM {
-                    for c in 0usize..DIM {
+                for r in 0..DIM {
+                    for c in 0..DIM {
                         let coords = Coords::new(r as u8, c as u8);
                         assert_eq!(nb[r][c], b.occupied[coords.i as usize]);
                         assert_eq!(available_values(nb, r, c), b.available_values(coords));
