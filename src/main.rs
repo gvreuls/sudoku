@@ -91,6 +91,18 @@ mod lib {
 
         #[inline(always)]
         #[must_use]
+        pub const fn is_single_bit(self) -> bool {
+            (self.0 & (self.0 - 1)) == 0
+        }
+
+        #[inline(always)]
+        #[must_use]
+        pub fn population(self) -> usize {
+            unsafe { self.0.count_ones().try_into().unwrap_unchecked() }
+        }
+
+        #[inline(always)]
+        #[must_use]
         pub const fn and(self, other: Self) -> Self {
             Self::new(self.0 & other.0)
         }
@@ -233,13 +245,13 @@ mod lib {
         }
 
         #[inline(always)]
-        pub fn leave(&mut self, coords: Coords, value: u8) {
+        pub fn leave(&mut self, coords: Coords) {
             debug_assert!(coords.r < DIM as u8);
             debug_assert!(coords.c < DIM as u8);
             debug_assert!(coords.b < DIM as u8);
             debug_assert!(coords.i < DIM2 as u8);
-            debug_assert_eq!(self.occupied[coords.i as usize], value);
-            let mask = BitVec::new_bit(value);
+            debug_assert_ne!(self.occupied[coords.i as usize], Self::EMPTY);
+            let mask = BitVec::new_bit(self.occupied[coords.i as usize]);
             debug_assert_eq!(self.rows[coords.r as usize].and(mask), BitVec::new(0));
             debug_assert_eq!(self.columns[coords.c as usize].and(mask), BitVec::new(0));
             debug_assert_eq!(self.boxes[coords.b as usize].and(mask), BitVec::new(0));
@@ -248,40 +260,69 @@ mod lib {
             self.boxes[coords.b as usize].set(mask);
             self.occupied[coords.i as usize] = Self::EMPTY;
         }
+    }
 
-        #[inline(never)]
-        #[must_use]
-        fn solve<F: Fn(&Self)>(&mut self, mut coords: Coords, f: &F) -> u128 {
-            let mut result = 0;
-            loop {
-                if let Some(mut values) = self.available_values(coords) {
-                    while !values.is_empty() {
-                        let value = values.front();
-                        self.occupy(coords, value);
-                        result += self.solve(coords, f);
-                        self.leave(coords, value);
-                        values.pop();
-                    }
-                    break;
-                } else if let Some(c) = coords.next() {
-                    coords = c;
-                } else {
-                    f(self);
-                    return 1;
+    #[inline(never)]
+    #[must_use]
+    fn solve<F: Fn(&Board)>(board: &mut Board, mut coords: Coords, f: &F) -> u128 {
+        let mut result = 0;
+        loop {
+            if let Some(mut values) = board.available_values(coords) {
+                while !values.is_empty() {
+                    let value = values.front();
+                    board.occupy(coords, value);
+                    result += solve(board, coords, f);
+                    board.leave(coords);
+                    values.pop();
                 }
+                break;
+            } else if let Some(c) = coords.next() {
+                coords = c;
+            } else {
+                f(board);
+                return 1;
             }
-            result
         }
+        result
+    }
 
-        #[inline(always)]
-        pub fn solve_and<F: Fn(&Self)>(&mut self, f: F) -> u128 {
-            self.solve(Coords::new_indexed(0, 0, 0), &f)
-        }
+    #[inline(always)]
+    pub fn solve_and<F: Fn(&Board)>(board: &mut Board, f: F) -> u128 {
+        solve(board, Coords::new_indexed(0, 0, 0), &f)
     }
 
     #[cfg(test)]
     mod tests {
         use super::*;
+
+        const TEST_STR: &str = "1 2 3 . . . . . .\n\
+                                . . . 2 3 5 . . .\n\
+                                . . . . . . 3 4 2\n\
+                                . 4 5 7 . . . . .\n\
+                                . . . . 5 6 8 . .\n\
+                                . . . . . . . 6 7\n\
+                                . . 7 9 . . . . .\n\
+                                . . . . . 8 1 . .\n\
+                                . . . . . . . . 9\n";
+
+        struct StrIter<'a>(std::str::Bytes<'a>);
+
+        impl<'a> StrIter<'a> {
+            #[inline(always)]
+            #[must_use]
+            fn new(str: &'a str) -> Self {
+                Self(str.bytes())
+            }
+        }
+
+        impl<'a> Iterator for StrIter<'a> {
+            type Item = Result<u8, std::io::Error>;
+
+            #[inline(always)]
+            fn next(&mut self) -> Option<Self::Item> {
+                Some(Ok(self.0.next()?))
+            }
+        }
 
         #[test]
         fn coords() {
@@ -306,7 +347,9 @@ mod lib {
         fn bitvec() {
             let mut v = BitVec::new(BitVec::ALL_SET);
             for bit_index in 0..(DIM as u8) {
-                assert_eq!(BitVec::new_bit(bit_index).0, 1 << bit_index);
+                let bv = BitVec::new_bit(bit_index);
+                assert!(bv.is_single_bit());
+                assert_eq!(bv.0, 1 << bit_index);
                 assert_eq!(v.front(), bit_index);
                 v.pop();
             }
@@ -315,6 +358,7 @@ mod lib {
                 let bv = BitVec::new(bits);
                 assert_eq!(bv.0, bits);
                 assert!(!bv.is_empty());
+                assert_eq!(v.population(), v.0.count_ones() as usize);
             }
             for outer in 0..=BitVec::ALL_SET {
                 let ov = BitVec::new(outer);
@@ -334,25 +378,6 @@ mod lib {
 
         #[test]
         fn board() {
-            struct StrIter<'a>(std::str::Bytes<'a>);
-
-            impl<'a> StrIter<'a> {
-                #[inline(always)]
-                #[must_use]
-                fn new(str: &'a str) -> Self {
-                    Self(str.bytes())
-                }
-            }
-
-            impl<'a> Iterator for StrIter<'a> {
-                type Item = Result<u8, std::io::Error>;
-
-                #[inline(always)]
-                fn next(&mut self) -> Option<Self::Item> {
-                    Some(Ok(self.0.next()?))
-                }
-            }
-
             type NaiveBoard = [[u8; DIM]; DIM];
 
             #[inline(always)]
@@ -407,7 +432,7 @@ mod lib {
                         let coords = Coords::new(r as u8, c as u8);
                         b.occupy(coords, v);
                         check_board(&nb, &b);
-                        b.leave(coords, v);
+                        b.leave(coords);
                         nb[r][c] = Board::EMPTY;
                     }
                 }
@@ -440,18 +465,14 @@ mod lib {
                 b.occupy(Coords::new(r as u8, c as u8), v);
                 check_board(&nb, &b);
             }
-            let board_text: &str = "1 2 3 . . . . . .\n\
-                                    . . . 2 3 5 . . .\n\
-                                    . . . . . . 3 4 2\n\
-                                    . 4 5 7 . . . . .\n\
-                                    . . . . 5 6 8 . .\n\
-                                    . . . . . . . 6 7\n\
-                                    . . 7 9 . . . . .\n\
-                                    . . . . . 8 1 . .\n\
-                                    . . . . . . . . 9\n";
-            b = Board::read(&mut StrIter::new(board_text)).unwrap();
+            b = Board::read(&mut StrIter::new(TEST_STR)).unwrap();
             check_board(&nb, &b);
-            assert_eq!(b.solve_and(|_| ()), 3827);
+        }
+
+        #[test]
+        fn solve() {
+            let mut b = Board::read(&mut StrIter::new(TEST_STR)).unwrap();
+            assert_eq!(solve_and(&mut b, |_| ()), 3827);
         }
     }
 }
@@ -465,7 +486,7 @@ fn main() -> Result<(), std::io::Error> {
     while iter.peek().is_some() {
         match Board::read(&mut iter) {
             Ok(mut board) => {
-                println!("solutions: {}\n", board.solve_and(|b| b.print()));
+                println!("solutions: {}\n", solve_and(&mut board, |b| b.print()));
                 while iter
                     .peek()
                     .is_some_and(|result| result.as_ref().is_ok_and(|&byte| byte.is_ascii_whitespace()))
