@@ -92,7 +92,7 @@ mod lib {
         #[inline(always)]
         #[must_use]
         pub const fn is_single_bit(self) -> bool {
-            (self.0 & (self.0 - 1)) == 0
+            self.0 != 0 && (self.0 & (self.0 - 1)) == 0
         }
 
         #[inline(always)]
@@ -262,6 +262,40 @@ mod lib {
         }
     }
 
+    #[derive(Debug)]
+    struct ValuesTable([BitVec; DIM2]);
+
+    impl ValuesTable {
+        #[inline(always)]
+        #[must_use]
+        fn new() -> Self {
+            Self([BitVec::new(0); DIM2])
+        }
+
+        #[inline(always)]
+        fn build(&mut self, board: &Board, mut coords: Coords) {
+            loop {
+                board
+                    .available_values(coords)
+                    .or_else(|| Some(BitVec::new(0)))
+                    .inspect(|&values| {
+                        self.0[coords.i as usize] = values;
+                    });
+                if let Some(c) = coords.next() {
+                    coords = c;
+                } else {
+                    break;
+                }
+            }
+        }
+
+        #[inline(always)]
+        #[must_use]
+        fn values(&self, coords: Coords) -> BitVec {
+            self.0[coords.i as usize]
+        }
+    }
+
     #[inline(never)]
     #[must_use]
     fn solve<F: Fn(&Board)>(board: &mut Board, mut coords: Coords, f: &F) -> u128 {
@@ -288,7 +322,29 @@ mod lib {
 
     #[inline(always)]
     pub fn solve_and<F: Fn(&Board)>(board: &mut Board, f: F) -> u128 {
-        solve(board, Coords::new_indexed(0, 0, 0), &f)
+        const START: Coords = Coords::new_indexed(0, 0, 0);
+        {
+            let mut values = ValuesTable::new();
+            let mut found_single = true;
+            while found_single {
+                found_single = false;
+                values.build(board, START);
+                let mut coords = START;
+                loop {
+                    let v = values.values(coords);
+                    if v.is_single_bit() {
+                        board.occupy(coords, v.front());
+                        found_single = true;
+                    }
+                    if let Some(c) = coords.next() {
+                        coords = c;
+                    } else {
+                        break;
+                    }
+                }
+            }
+        }
+        solve(board, START, &f)
     }
 
     #[cfg(test)]
@@ -354,6 +410,7 @@ mod lib {
                 v.pop();
             }
             assert!(BitVec::new(0).is_empty());
+            assert!(!BitVec::new(0).is_single_bit());
             for bits in 1..=BitVec::ALL_SET {
                 let bv = BitVec::new(bits);
                 assert_eq!(bv.0, bits);
