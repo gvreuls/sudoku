@@ -549,10 +549,7 @@ fn main() -> Result<(), std::io::Error> {
                 }
             }
             Err(result) => match result {
-                Some(err) => {
-                    eprintln!("io error: {:?}!", err);
-                    return Err(err);
-                }
+                Some(err) => return Err(err),
                 None => eprintln!("invalid sudoku!"),
             },
         }
