@@ -92,14 +92,6 @@ mod lib {
             self.0 == 0
         }
 
-        /*
-        #[inline(always)]
-        #[must_use]
-        pub const fn is_single_bit(self) -> bool {
-            self.0 != 0 && (self.0 & (self.0 - 1)) == 0
-        }
-        */
-
         #[inline(always)]
         #[must_use]
         pub fn population(self) -> u8 {
@@ -214,7 +206,6 @@ mod lib {
                 }
                 println!();
             }
-            println!();
         }
 
         #[inline(always)]
@@ -298,14 +289,14 @@ mod lib {
         let mut best_values = BitVec::new(0);
         let mut best_population = DIM as u8 + 1;
         let mut coords = Coords::START;
-        let mut count = 0;
+        let mut cells = 0;
         loop {
             if let Some(values) = board.available_values(coords) {
                 let population = values.population();
                 if population == 0 {
                     return result;
                 }
-                count += 1;
+                cells += 1;
                 if population < best_population {
                     best_coords = coords;
                     best_values = values;
@@ -325,7 +316,7 @@ mod lib {
             f(board);
             return 1;
         }
-        if best_population > 1 && count < SOLVE_BEST_LIMIT {
+        if best_population > 1 && cells < SOLVE_BEST_LIMIT {
             while !best_values.is_empty() {
                 board.occupy(best_coords, best_values.front());
                 result += solve(board, Coords::START, f);
@@ -451,13 +442,11 @@ mod lib {
             let mut v = BitVec::new(BitVec::ALL_SET);
             for bit_index in 0..(DIM as u8) {
                 let bv = BitVec::new_bit(bit_index);
-                //assert!(bv.is_single_bit());
                 assert_eq!(bv.0, 1 << bit_index);
                 assert_eq!(v.front(), bit_index);
                 v.pop();
             }
             assert!(BitVec::new(0).is_empty());
-            //assert!(!BitVec::new(0).is_single_bit());
             for bits in 1..=BitVec::ALL_SET {
                 let bv = BitVec::new(bits);
                 assert_eq!(bv.0, bits);
@@ -570,7 +559,13 @@ fn main() -> Result<(), std::io::Error> {
     while iter.peek().is_some() {
         match Board::read(&mut iter) {
             Ok(mut board) => {
-                println!("solutions: {}\n", solve_and(&mut board, |b| b.print()));
+                println!(
+                    "solutions: {}",
+                    solve_and(&mut board, |b| {
+                        println!();
+                        b.print();
+                    })
+                );
                 while iter
                     .peek()
                     .is_some_and(|result| result.as_ref().is_ok_and(|&byte| byte.is_ascii_whitespace()))
