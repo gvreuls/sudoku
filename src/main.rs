@@ -2,8 +2,7 @@ mod lib {
     const ROOT: usize = 3;
     const DIM: usize = ROOT * ROOT;
     const DIM2: usize = DIM * DIM;
-    //const SOLVE_BEST_LIMIT: usize = DIM * (ROOT + ROOT - 1) - 1;
-    const SOLVE_BEST_LIMIT: usize = DIM * (ROOT + 1);
+    const SOLVE_BEST_LIMIT: usize = (DIM + 1) * ROOT;
 
     #[derive(Debug, Clone, Copy)]
     pub struct Coords {
@@ -343,7 +342,7 @@ mod lib {
     mod tests {
         use super::*;
 
-        const TEST_COORDS: [(u8, u8, u8); 22] = [
+        const TEST_COORDS: [(u8, u8, u8); 21] = [
             (0, 0, 0),
             (1, 3, 1),
             (2, 6, 2),
@@ -352,7 +351,6 @@ mod lib {
             (5, 7, 5),
             (6, 2, 6),
             (7, 5, 7),
-            (8, 8, 8),
             (0, 1, 1),
             (1, 4, 2),
             (2, 7, 3),
@@ -375,7 +373,7 @@ mod lib {
                                 . . . . . . . 6 7\n\
                                 . . 7 9 . . . . .\n\
                                 . . . . . 8 1 . .\n\
-                                . . . . . . . . 9\n";
+                                . . . . . . . . .\n";
         const PROPERS: [&str; 20] = [
             "..1..2...7..391.....2.8..933......8.......6....98...34....3...6..8..6.21...9..4..",
             ".3...5...7..6......68.2...3.....9..2..1...5..5..47..963...5.76...4..73.5...2...8.",
@@ -541,7 +539,7 @@ mod lib {
         #[test]
         fn solve() {
             let mut b = Board::read(&mut StrIter::new(TEST_STR)).unwrap();
-            assert_eq!(solve_and(&mut b, |_| ()), 3827);
+            assert_eq!(solve_and(&mut b, |_| ()), 13550);
             for str in PROPERS {
                 b = Board::read(&mut StrIter::new(str)).unwrap();
                 assert_eq!(solve_and(&mut b, |_| ()), 1);
