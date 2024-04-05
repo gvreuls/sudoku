@@ -3,7 +3,7 @@ mod lib {
     const DIM: usize = ROOT * ROOT;
     const DIM2: usize = DIM * DIM;
     const SOLVE_BEST_LIMIT: usize = DIM * (ROOT + ROOT - 1) - 1;
-    
+
     #[derive(Debug, Clone, Copy)]
     pub struct Coords {
         r: u8,
@@ -266,7 +266,7 @@ mod lib {
         }
     }
 
-    #[inline(never)]
+    #[inline]
     #[must_use]
     fn solve<F: Fn(&Board)>(board: &mut Board, mut coords: Coords, f: &F) -> u128 {
         let mut result = 0;
@@ -289,7 +289,7 @@ mod lib {
         result
     }
 
-    #[inline(never)]
+    #[inline]
     #[must_use]
     fn solve_best<F: Fn(&Board)>(board: &mut Board, f: &F) -> u128 {
         let mut result = 0;
@@ -339,7 +339,7 @@ mod lib {
         result
     }
 
-    #[inline(always)]
+    #[inline]
     pub fn solve_and<F: Fn(&Board)>(board: &mut Board, f: F) -> u128 {
         solve_best(board, &f)
     }
