@@ -97,12 +97,6 @@ mod lib {
 
         #[inline(always)]
         #[must_use]
-        pub fn population(self) -> usize {
-            unsafe { self.0.count_ones().try_into().unwrap_unchecked() }
-        }
-
-        #[inline(always)]
-        #[must_use]
         pub const fn and(self, other: Self) -> Self {
             Self::new(self.0 & other.0)
         }
@@ -153,7 +147,7 @@ mod lib {
             }
         }
 
-        #[inline(always)]
+        #[inline]
         pub fn read<U: Iterator<Item = Result<u8, std::io::Error>>>(bytes: &mut U) -> Result<Self, Option<std::io::Error>> {
             let mut board = Self::new();
             let mut coords = Coords::new_indexed(0, 0, 0);
@@ -190,7 +184,7 @@ mod lib {
             Ok(board)
         }
 
-        #[inline(always)]
+        #[inline]
         pub fn print(&self) {
             for row in 0..(DIM as u8) {
                 let mut coords = Coords::new(row, 0);
@@ -262,25 +256,43 @@ mod lib {
         }
     }
 
-    #[derive(Debug)]
-    struct ValuesTable([BitVec; DIM2]);
-
-    impl ValuesTable {
-        #[inline(always)]
-        #[must_use]
-        fn new() -> Self {
-            Self([BitVec::new(0); DIM2])
+    #[inline(never)]
+    #[must_use]
+    fn solve<F: Fn(&Board)>(board: &mut Board, mut coords: Coords, f: &F) -> u128 {
+        let mut result = 0;
+        loop {
+            if let Some(mut v) = board.available_values(coords) {
+                while !v.is_empty() {
+                    board.occupy(coords, v.front());
+                    result += solve(board, coords, f);
+                    board.leave(coords);
+                    v.pop();
+                }
+                break;
+            } else if let Some(c) = coords.next() {
+                coords = c;
+            } else {
+                f(board);
+                return 1;
+            }
         }
+        result
+    }
 
-        #[inline(always)]
-        fn build(&mut self, board: &Board, mut coords: Coords) {
+    #[inline]
+    pub fn solve_and<F: Fn(&Board)>(board: &mut Board, f: F) -> u128 {
+        const START: Coords = Coords::new_indexed(0, 0, 0);
+        let mut found_single = true;
+        while found_single {
+            found_single = false;
+            let mut coords = START;
             loop {
-                board
-                    .available_values(coords)
-                    .or_else(|| Some(BitVec::new(0)))
-                    .inspect(|&values| {
-                        self.0[coords.i as usize] = values;
-                    });
+                board.available_values(coords).inspect(|&values| {
+                    if values.is_single_bit() {
+                        board.occupy(coords, values.front());
+                        found_single = true;    
+                    }
+                });
                 if let Some(c) = coords.next() {
                     coords = c;
                 } else {
@@ -288,24 +300,13 @@ mod lib {
                 }
             }
         }
-
-        #[inline(always)]
-        #[must_use]
-        fn values(&self, coords: Coords) -> BitVec {
-            self.0[coords.i as usize]
-        }
-    }
-
-    #[inline(never)]
-    #[must_use]
-    fn solve<F: Fn(&Board)>(board: &mut Board, mut coords: Coords, f: &F) -> u128 {
+        let mut coords = START;
         let mut result = 0;
         loop {
             if let Some(mut values) = board.available_values(coords) {
                 while !values.is_empty() {
-                    let value = values.front();
-                    board.occupy(coords, value);
-                    result += solve(board, coords, f);
+                    board.occupy(coords, values.front());
+                    result += solve(board, coords, &f);
                     board.leave(coords);
                     values.pop();
                 }
@@ -320,37 +321,34 @@ mod lib {
         result
     }
 
-    #[inline(always)]
-    pub fn solve_and<F: Fn(&Board)>(board: &mut Board, f: F) -> u128 {
-        const START: Coords = Coords::new_indexed(0, 0, 0);
-        {
-            let mut values = ValuesTable::new();
-            let mut found_single = true;
-            while found_single {
-                found_single = false;
-                values.build(board, START);
-                let mut coords = START;
-                loop {
-                    let v = values.values(coords);
-                    if v.is_single_bit() {
-                        board.occupy(coords, v.front());
-                        found_single = true;
-                    }
-                    if let Some(c) = coords.next() {
-                        coords = c;
-                    } else {
-                        break;
-                    }
-                }
-            }
-        }
-        solve(board, START, &f)
-    }
-
     #[cfg(test)]
     mod tests {
         use super::*;
 
+        const TEST_COORDS: [(u8, u8, u8); 22] = [
+            (0, 0, 0),
+            (1, 3, 1),
+            (2, 6, 2),
+            (3, 1, 3),
+            (4, 4, 4),
+            (5, 7, 5),
+            (6, 2, 6),
+            (7, 5, 7),
+            (8, 8, 8),
+            (0, 1, 1),
+            (1, 4, 2),
+            (2, 7, 3),
+            (3, 2, 4),
+            (4, 5, 5),
+            (5, 8, 6),
+            (6, 3, 8),
+            (7, 6, 0),
+            (0, 2, 2),
+            (1, 5, 4),
+            (2, 8, 1),
+            (3, 3, 6),
+            (4, 6, 7),
+        ];
         const TEST_STR: &str = "1 2 3 . . . . . .\n\
                                 . . . 2 3 5 . . .\n\
                                 . . . . . . 3 4 2\n\
@@ -415,7 +413,6 @@ mod lib {
                 let bv = BitVec::new(bits);
                 assert_eq!(bv.0, bits);
                 assert!(!bv.is_empty());
-                assert_eq!(v.population(), v.0.count_ones() as usize);
             }
             for outer in 0..=BitVec::ALL_SET {
                 let ov = BitVec::new(outer);
@@ -494,32 +491,9 @@ mod lib {
                     }
                 }
             }
-            for (r, c, v) in [
-                (0, 0, 0),
-                (1, 3, 1),
-                (2, 6, 2),
-                (3, 1, 3),
-                (4, 4, 4),
-                (5, 7, 5),
-                (6, 2, 6),
-                (7, 5, 7),
-                (8, 8, 8),
-                (0, 1, 1),
-                (1, 4, 2),
-                (2, 7, 3),
-                (3, 2, 4),
-                (4, 5, 5),
-                (5, 8, 6),
-                (6, 3, 8),
-                (7, 6, 0),
-                (0, 2, 2),
-                (1, 5, 4),
-                (2, 8, 1),
-                (3, 3, 6),
-                (4, 6, 7),
-            ] {
-                nb[r][c] = v;
-                b.occupy(Coords::new(r as u8, c as u8), v);
+            for (r, c, v) in TEST_COORDS {
+                nb[r as usize][c as usize] = v;
+                b.occupy(Coords::new(r, c), v);
                 check_board(&nb, &b);
             }
             b = Board::read(&mut StrIter::new(TEST_STR)).unwrap();
