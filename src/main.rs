@@ -2,7 +2,8 @@ mod lib {
     const ROOT: usize = 3;
     const DIM: usize = ROOT * ROOT;
     const DIM2: usize = DIM * DIM;
-
+    const SOLVE_BEST_LIMIT: usize = DIM * (ROOT + ROOT - 1) - 1;
+    
     #[derive(Debug, Clone, Copy)]
     pub struct Coords {
         r: u8,
@@ -12,6 +13,7 @@ mod lib {
     }
 
     impl Coords {
+        const START: Self = Self { r: 0, c: 0, b: 0, i: 0 };
         #[rustfmt::skip]
         const BOX: [u8; DIM2] = [
             0, 0, 0, 1, 1, 1, 2, 2, 2,
@@ -89,10 +91,18 @@ mod lib {
             self.0 == 0
         }
 
+        /*
         #[inline(always)]
         #[must_use]
         pub const fn is_single_bit(self) -> bool {
             self.0 != 0 && (self.0 & (self.0 - 1)) == 0
+        }
+        */
+
+        #[inline(always)]
+        #[must_use]
+        pub fn population(self) -> u8 {
+            unsafe { self.0.count_ones().try_into().unwrap_unchecked() }
         }
 
         #[inline(always)]
@@ -150,7 +160,7 @@ mod lib {
         #[inline]
         pub fn read<U: Iterator<Item = Result<u8, std::io::Error>>>(bytes: &mut U) -> Result<Self, Option<std::io::Error>> {
             let mut board = Self::new();
-            let mut coords = Coords::new_indexed(0, 0, 0);
+            let mut coords = Coords::START;
             loop {
                 if let Some(res) = bytes.next() {
                     match res {
@@ -261,12 +271,12 @@ mod lib {
     fn solve<F: Fn(&Board)>(board: &mut Board, mut coords: Coords, f: &F) -> u128 {
         let mut result = 0;
         loop {
-            if let Some(mut v) = board.available_values(coords) {
-                while !v.is_empty() {
-                    board.occupy(coords, v.front());
+            if let Some(mut values) = board.available_values(coords) {
+                while !values.is_empty() {
+                    board.occupy(coords, values.front());
                     result += solve(board, coords, f);
                     board.leave(coords);
-                    v.pop();
+                    values.pop();
                 }
                 break;
             } else if let Some(c) = coords.next() {
@@ -279,28 +289,59 @@ mod lib {
         result
     }
 
-    #[inline]
-    pub fn solve_and<F: Fn(&Board)>(board: &mut Board, f: F) -> u128 {
-        const START: Coords = Coords::new_indexed(0, 0, 0);
-        let mut found_single = true;
-        while found_single {
-            found_single = false;
-            let mut coords = START;
-            loop {
-                board.available_values(coords).inspect(|&values| {
-                    if values.is_single_bit() {
-                        board.occupy(coords, values.front());
-                        found_single = true;
-                    }
-                });
-                if let Some(c) = coords.next() {
-                    coords = c;
-                } else {
-                    break;
+    #[inline(never)]
+    #[must_use]
+    fn solve_best<F: Fn(&Board)>(board: &mut Board, f: &F) -> u128 {
+        let mut result = 0;
+        let mut best_coords = Coords::START;
+        let mut best_values = BitVec::new(0);
+        let mut best_population = DIM as u8 + 1;
+        let mut coords = Coords::START;
+        let mut count = 0;
+        loop {
+            if let Some(values) = board.available_values(coords) {
+                let population = values.population();
+                if population == 0 {
+                    return result;
                 }
+                if population < best_population {
+                    best_coords = coords;
+                    best_values = values;
+                    best_population = population;
+                }
+                count += 1;
+            }
+            if let Some(c) = coords.next() {
+                coords = c;
+            } else {
+                break;
             }
         }
-        solve(board, START, &f)
+        if best_population == DIM as u8 + 1 {
+            f(board);
+            return 1;
+        }
+        if count < SOLVE_BEST_LIMIT {
+            while !best_values.is_empty() {
+                board.occupy(best_coords, best_values.front());
+                result += solve(board, Coords::START, f);
+                board.leave(best_coords);
+                best_values.pop();
+            }
+        } else {
+            while !best_values.is_empty() {
+                board.occupy(best_coords, best_values.front());
+                result += solve_best(board, f);
+                board.leave(best_coords);
+                best_values.pop();
+            }
+        }
+        result
+    }
+
+    #[inline(always)]
+    pub fn solve_and<F: Fn(&Board)>(board: &mut Board, f: F) -> u128 {
+        solve_best(board, &f)
     }
 
     #[cfg(test)]
@@ -384,13 +425,13 @@ mod lib {
             let mut v = BitVec::new(BitVec::ALL_SET);
             for bit_index in 0..(DIM as u8) {
                 let bv = BitVec::new_bit(bit_index);
-                assert!(bv.is_single_bit());
+                //assert!(bv.is_single_bit());
                 assert_eq!(bv.0, 1 << bit_index);
                 assert_eq!(v.front(), bit_index);
                 v.pop();
             }
             assert!(BitVec::new(0).is_empty());
-            assert!(!BitVec::new(0).is_single_bit());
+            //assert!(!BitVec::new(0).is_single_bit());
             for bits in 1..=BitVec::ALL_SET {
                 let bv = BitVec::new(bits);
                 assert_eq!(bv.0, bits);
