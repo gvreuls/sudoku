@@ -290,7 +290,7 @@ mod lib {
                 board.available_values(coords).inspect(|&values| {
                     if values.is_single_bit() {
                         board.occupy(coords, values.front());
-                        found_single = true;    
+                        found_single = true;
                     }
                 });
                 if let Some(c) = coords.next() {
@@ -300,25 +300,7 @@ mod lib {
                 }
             }
         }
-        let mut coords = START;
-        let mut result = 0;
-        loop {
-            if let Some(mut values) = board.available_values(coords) {
-                while !values.is_empty() {
-                    board.occupy(coords, values.front());
-                    result += solve(board, coords, &f);
-                    board.leave(coords);
-                    values.pop();
-                }
-                break;
-            } else if let Some(c) = coords.next() {
-                coords = c;
-            } else {
-                f(board);
-                return 1;
-            }
-        }
-        result
+        solve(board, START, &f)
     }
 
     #[cfg(test)]
