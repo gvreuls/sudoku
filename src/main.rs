@@ -258,83 +258,81 @@ mod lib {
     }
 
     #[inline]
-    #[must_use]
-    fn solve<F: Fn(&Board)>(board: &mut Board, mut coords: Coords, f: &F) -> u128 {
-        let mut result = 0;
-        loop {
-            if let Some(mut values) = board.available_values(coords) {
-                while !values.is_empty() {
-                    board.occupy(coords, values.front());
-                    result += solve(board, coords, f);
-                    board.leave(coords);
-                    values.pop();
+    pub fn solve_and<F: Fn(&Board)>(board: &mut Board, f: F) -> u128 {
+        #[inline]
+        fn solve<F: Fn(&Board)>(board: &mut Board, mut coords: Coords, f: &F) -> u128 {
+            let mut result = 0;
+            loop {
+                if let Some(mut values) = board.available_values(coords) {
+                    while !values.is_empty() {
+                        board.occupy(coords, values.front());
+                        result += solve(board, coords, f);
+                        board.leave(coords);
+                        values.pop();
+                    }
+                    break;
+                } else if let Some(c) = coords.next() {
+                    coords = c;
+                } else {
+                    f(board);
+                    return 1;
                 }
-                break;
-            } else if let Some(c) = coords.next() {
-                coords = c;
-            } else {
+            }
+            result
+        }
+
+        #[inline]
+        fn solve_best<F: Fn(&Board)>(board: &mut Board, f: &F) -> u128 {
+            let mut result = 0;
+            let mut best_coords = Coords::START;
+            let mut best_values = BitVec::new(0);
+            let mut best_population = DIM as u8 + 1;
+            let mut coords = Coords::START;
+            let mut cells = 0;
+            loop {
+                if let Some(values) = board.available_values(coords) {
+                    let population = values.population();
+                    if population == 0 {
+                        return result;
+                    }
+                    cells += 1;
+                    if population < best_population {
+                        best_coords = coords;
+                        best_values = values;
+                        best_population = population;
+                        if best_population == 1 {
+                            break;
+                        }
+                    }
+                }
+                if let Some(c) = coords.next() {
+                    coords = c;
+                } else {
+                    break;
+                }
+            }
+            if best_population == DIM as u8 + 1 {
                 f(board);
                 return 1;
             }
-        }
-        result
-    }
-
-    #[inline]
-    #[must_use]
-    fn solve_best<F: Fn(&Board)>(board: &mut Board, f: &F) -> u128 {
-        let mut result = 0;
-        let mut best_coords = Coords::START;
-        let mut best_values = BitVec::new(0);
-        let mut best_population = DIM as u8 + 1;
-        let mut coords = Coords::START;
-        let mut cells = 0;
-        loop {
-            if let Some(values) = board.available_values(coords) {
-                let population = values.population();
-                if population == 0 {
-                    return result;
+            if best_population > 1 && cells < SOLVE_BEST_LIMIT {
+                while !best_values.is_empty() {
+                    board.occupy(best_coords, best_values.front());
+                    result += solve(board, Coords::START, f);
+                    board.leave(best_coords);
+                    best_values.pop();
                 }
-                cells += 1;
-                if population < best_population {
-                    best_coords = coords;
-                    best_values = values;
-                    best_population = population;
-                    if best_population == 1 {
-                        break;
-                    }
-                }
-            }
-            if let Some(c) = coords.next() {
-                coords = c;
             } else {
-                break;
+                while !best_values.is_empty() {
+                    board.occupy(best_coords, best_values.front());
+                    result += solve_best(board, f);
+                    board.leave(best_coords);
+                    best_values.pop();
+                }
             }
+            result
         }
-        if best_population == DIM as u8 + 1 {
-            f(board);
-            return 1;
-        }
-        if best_population > 1 && cells < SOLVE_BEST_LIMIT {
-            while !best_values.is_empty() {
-                board.occupy(best_coords, best_values.front());
-                result += solve(board, Coords::START, f);
-                board.leave(best_coords);
-                best_values.pop();
-            }
-        } else {
-            while !best_values.is_empty() {
-                board.occupy(best_coords, best_values.front());
-                result += solve_best(board, f);
-                board.leave(best_coords);
-                best_values.pop();
-            }
-        }
-        result
-    }
 
-    #[inline]
-    pub fn solve_and<F: Fn(&Board)>(board: &mut Board, f: F) -> u128 {
         solve_best(board, &f)
     }
 
