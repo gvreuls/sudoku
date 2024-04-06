@@ -2,7 +2,7 @@ mod lib {
     const ROOT: usize = 3;
     const DIM: usize = ROOT * ROOT;
     const DIM2: usize = DIM * DIM;
-    const SOLVE_BEST_LIMIT: usize = DIM * (ROOT + 1);
+    const BEST_THRESHOLD: usize = DIM * (ROOT + 1);
 
     #[derive(Debug, Clone, Copy)]
     pub struct Coords {
@@ -315,7 +315,7 @@ mod lib {
                 f(board);
                 return 1;
             }
-            if best_population > 1 && cells < SOLVE_BEST_LIMIT {
+            if best_population > 1 && cells < BEST_THRESHOLD {
                 while !best_values.is_empty() {
                     board.occupy(best_coords, best_values.front());
                     result += solve(board, Coords::START, f);
@@ -363,7 +363,7 @@ mod lib {
             (3, 3, 6),
             (4, 6, 7),
         ];
-        const IMPROPERS: [(&str, u128); 4] = [
+        const IMPROPERS: [(&str, u16); 10] = [
             (
                 "1 2 3 . . . . . .\n\
                  . . . 2 3 5 . . .\n\
@@ -376,9 +376,15 @@ mod lib {
                  . . . . . . . . .\n",
                 13550,
             ),
+            (".56.........2.......3576..........7......8.....8132....346.....8.....4..2.......8", 14582),
             ("1....7.9..3..2...8..96..5....52..9...1..8...26...............1.........7..7...3..", 18670),
             (".7.5...4......86...1.......3.....2.6...14.......7.....6.....8..8.2...............", 26948),
             ("1..92....524................5...81.2.........4.2....9..6...........3.945....71..6", 20640),
+            ("48...251612..3..985........2.........................7........171..4..596952...74", 26030),
+            ("9..87...4....3.....5...4..6.1....2.....123....8....6...6.9.7..1.........5..3.....", 27913),
+            (".47..............1...59...6.3........58...73...2......5...29...8..15..........16.", 20049),
+            ("8..........36......7..9.....5...7.......457.....1...3...1....68...5...1..9....4..", 28411),
+            (".....1..4.......5......21.3.8.....3.......5264.1.....82..9.....8.6.5.....4.......", 24498),
         ];
         const PROPERS: [&str; 20] = [
             "..1..2...7..391.....2.8..933......8.......6....98...34....3...6..8..6.21...9..4..",
@@ -549,7 +555,7 @@ mod lib {
             let mut b; // = Board::new();
             for (str, solutions) in IMPROPERS {
                 b = Board::read(&mut StrIter::new(str)).unwrap();
-                assert_eq!(solve_and(&mut b, |_| ()), solutions);
+                assert_eq!(solve_and(&mut b, |_| ()), solutions as u128);
             }
             for str in PROPERS {
                 b = Board::read(&mut StrIter::new(str)).unwrap();
