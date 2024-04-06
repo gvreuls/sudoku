@@ -2,7 +2,7 @@ mod lib {
     const ROOT: usize = 3;
     const DIM: usize = ROOT * ROOT;
     const DIM2: usize = DIM * DIM;
-    const SOLVE_BEST_LIMIT: usize = (DIM + 1) * ROOT;
+    const SOLVE_BEST_LIMIT: usize = DIM * (ROOT + 1);
 
     #[derive(Debug, Clone, Copy)]
     pub struct Coords {
@@ -13,7 +13,7 @@ mod lib {
     }
 
     impl Coords {
-        const START: Self = Self { r: 0, c: 0, b: 0, i: 0 };
+        pub const START: Self = Self { r: 0, c: 0, b: 0, i: 0 };
         #[rustfmt::skip]
         const BOX: [u8; DIM2] = [
             0, 0, 0, 1, 1, 1, 2, 2, 2,
@@ -363,15 +363,23 @@ mod lib {
             (3, 3, 6),
             (4, 6, 7),
         ];
-        const TEST_STR: &str = "1 2 3 . . . . . .\n\
-                                . . . 2 3 5 . . .\n\
-                                . . . . . . 3 4 2\n\
-                                . 4 5 7 . . . . .\n\
-                                . . . . 5 6 8 . .\n\
-                                . . . . . . . 6 7\n\
-                                . . 7 9 . . . . .\n\
-                                . . . . . 8 1 . .\n\
-                                . . . . . . . . .\n";
+        const IMPROPERS: [(&str, u128); 4] = [
+            (
+                "1 2 3 . . . . . .\n\
+                 . . . 2 3 5 . . .\n\
+                 . . . . . . 3 4 2\n\
+                 . 4 5 7 . . . . .\n\
+                 . . . . 5 6 8 . .\n\
+                 . . . . . . . 6 7\n\
+                 . . 7 9 . . . . .\n\
+                 . . . . . 8 1 . .\n\
+                 . . . . . . . . .\n",
+                13550,
+            ),
+            ("1....7.9..3..2...8..96..5....52..9...1..8...26...............1.........7..7...3..", 18670),
+            (".7.5...4......86...1.......3.....2.6...14.......7.....6.....8..8.2...............", 26948),
+            ("1..92....524................5...81.2.........4.2....9..6...........3.945....71..6", 20640),
+        ];
         const PROPERS: [&str; 20] = [
             "..1..2...7..391.....2.8..933......8.......6....98...34....3...6..8..6.21...9..4..",
             ".3...5...7..6......68.2...3.....9..2..1...5..5..47..963...5.76...4..73.5...2...8.",
@@ -530,14 +538,17 @@ mod lib {
                 b.occupy(Coords::new(r, c), v);
                 check_board(&nb, &b);
             }
-            b = Board::read(&mut StrIter::new(TEST_STR)).unwrap();
+            b = Board::read(&mut StrIter::new(IMPROPERS[0].0)).unwrap();
             check_board(&nb, &b);
         }
 
         #[test]
         fn solve() {
-            let mut b = Board::read(&mut StrIter::new(TEST_STR)).unwrap();
-            assert_eq!(solve_and(&mut b, |_| ()), 13550);
+            let mut b; // = Board::new();
+            for (str, solutions) in IMPROPERS {
+                b = Board::read(&mut StrIter::new(str)).unwrap();
+                assert_eq!(solve_and(&mut b, |_| ()), solutions);
+            }
             for str in PROPERS {
                 b = Board::read(&mut StrIter::new(str)).unwrap();
                 assert_eq!(solve_and(&mut b, |_| ()), 1);
