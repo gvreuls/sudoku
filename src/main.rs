@@ -451,10 +451,12 @@ mod lib {
                 v.pop();
             }
             assert!(BitVec::new(0).is_empty());
+            assert_eq!(BitVec::new(0).population(), 0);
             for bits in 1..=BitVec::ALL_SET {
                 let bv = BitVec::new(bits);
                 assert_eq!(bv.0, bits);
                 assert!(!bv.is_empty());
+                assert_eq!(bv.population(), bits.count_ones() as u8);
             }
             for outer in 0..=BitVec::ALL_SET {
                 let ov = BitVec::new(outer);
