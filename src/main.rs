@@ -66,14 +66,14 @@ mod lib {
     }
 
     #[derive(Debug, Clone, Copy, PartialEq)]
-    pub struct BitVec(u16);
+    pub struct BitVec(u32);
 
     impl BitVec {
         pub const ALL_SET: Self = Self((1 << DIM) - 1);
 
         #[inline(always)]
         #[must_use]
-        pub const fn new_mask(bit_mask: u16) -> Self {
+        pub const fn new_mask(bit_mask: u32) -> Self {
             debug_assert!(bit_mask <= Self::ALL_SET.0);
             Self(bit_mask)
         }
