@@ -69,6 +69,7 @@ mod lib {
     pub struct BitVec(u32);
 
     impl BitVec {
+        pub const ALL_CLEAR: Self = Self(0);
         pub const ALL_SET: Self = Self((1 << DIM) - 1);
 
         #[inline(always)]
@@ -246,9 +247,9 @@ mod lib {
             debug_assert!(coords.i < DIM2 as u32);
             debug_assert_ne!(self.occupied[coords.i as usize], Self::EMPTY_CELL);
             let mask = BitVec::new_bit(self.occupied[coords.i as usize]);
-            debug_assert_eq!(self.rows[coords.r as usize].and(mask), BitVec::new_mask(0));
-            debug_assert_eq!(self.columns[coords.c as usize].and(mask), BitVec::new_mask(0));
-            debug_assert_eq!(self.boxes[coords.b as usize].and(mask), BitVec::new_mask(0));
+            debug_assert_eq!(self.rows[coords.r as usize].and(mask), BitVec::ALL_CLEAR);
+            debug_assert_eq!(self.columns[coords.c as usize].and(mask), BitVec::ALL_CLEAR);
+            debug_assert_eq!(self.boxes[coords.b as usize].and(mask), BitVec::ALL_CLEAR);
             self.rows[coords.r as usize].set(mask);
             self.columns[coords.c as usize].set(mask);
             self.boxes[coords.b as usize].set(mask);
@@ -283,7 +284,7 @@ mod lib {
         fn solve_best<F: Fn(&Board)>(board: &mut Board, f: &F) -> u128 {
             let mut solutions = 0;
             let mut best_coords = Coords::START;
-            let mut best_possibilities = BitVec::new_mask(0);
+            let mut best_possibilities = BitVec::ALL_CLEAR;
             let mut best_population = DIM as u8 + 1;
             let mut coords = Coords::START;
             let mut cells = 0;
@@ -451,8 +452,8 @@ mod lib {
                 assert_eq!(bv.0, 1 << bit_index);
                 assert_eq!(v.pop().unwrap(), bit_index);
             }
-            assert!(BitVec::new_mask(0).is_empty());
-            assert_eq!(BitVec::new_mask(0).population(), 0);
+            assert!(BitVec::ALL_CLEAR.is_empty());
+            assert_eq!(BitVec::ALL_CLEAR.population(), 0);
             for bits in 1..=BitVec::ALL_SET.0 {
                 let bv = BitVec::new_mask(bits);
                 assert_eq!(bv.0, bits);
