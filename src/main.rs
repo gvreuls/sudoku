@@ -40,7 +40,7 @@ mod lib {
             Self {
                 r: row,
                 c: column,
-                b: Self::BOX[index as usize],
+                b: unsafe { *Self::BOX.as_ptr().add(index as usize) },
                 i: index,
             }
         }
@@ -214,7 +214,7 @@ mod lib {
             debug_assert!(coords.c < DIM as u8);
             debug_assert!(coords.b < DIM as u8);
             debug_assert!(coords.i < DIM2 as u8);
-            if self.occupied[coords.i as usize] == Self::EMPTY {
+            if unsafe { *self.occupied.as_ptr().add(coords.i as usize) } == Self::EMPTY {
                 Some(
                     self.rows[coords.r as usize]
                         .and(self.columns[coords.c as usize])
