@@ -105,9 +105,12 @@ mod lib {
 
         #[inline(always)]
         #[must_use]
-        pub fn front(self) -> u8 {
-            debug_assert!(!self.is_empty());
-            unsafe { self.0.trailing_zeros().try_into().unwrap_unchecked() }
+        pub fn front(self) -> Option<u8> {
+            if self.is_empty() {
+                None
+            } else {
+                Some(unsafe { self.0.trailing_zeros().try_into().unwrap_unchecked() })
+            }
         }
 
         #[inline(always)]
@@ -264,8 +267,8 @@ mod lib {
             let mut result = 0;
             loop {
                 if let Some(mut values) = board.available_values(coords) {
-                    while !values.is_empty() {
-                        board.occupy(coords, values.front());
+                    while let Some(value) = values.front() {
+                        board.occupy(coords, value);
                         result += solve(board, coords, f);
                         board.leave(coords);
                         values.pop();
@@ -316,15 +319,15 @@ mod lib {
                 return 1;
             }
             if best_population > 1 && cells < BEST_THRESHOLD {
-                while !best_values.is_empty() {
-                    board.occupy(best_coords, best_values.front());
+                while let Some(value) = best_values.front() {
+                    board.occupy(best_coords, value);
                     result += solve(board, Coords::START, f);
                     board.leave(best_coords);
                     best_values.pop();
                 }
             } else {
-                while !best_values.is_empty() {
-                    board.occupy(best_coords, best_values.front());
+                while let Some(value) = best_values.front() {
+                    board.occupy(best_coords, value);
                     result += solve_best(board, f);
                     board.leave(best_coords);
                     best_values.pop();
@@ -453,7 +456,7 @@ mod lib {
             for bit_index in 0..(DIM as u8) {
                 let bv = BitVec::new_bit(bit_index);
                 assert_eq!(bv.0, 1 << bit_index);
-                assert_eq!(v.front(), bit_index);
+                assert_eq!(v.front().unwrap(), bit_index);
                 v.pop();
             }
             assert!(BitVec::new(0).is_empty());
