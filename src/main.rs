@@ -105,18 +105,14 @@ mod lib {
 
         #[inline(always)]
         #[must_use]
-        pub fn front(self) -> Option<u8> {
+        pub fn pop(&mut self) -> Option<u8> {
             if self.is_empty() {
                 None
             } else {
-                Some(unsafe { self.0.trailing_zeros().try_into().unwrap_unchecked() })
+                let result = unsafe { self.0.trailing_zeros().try_into().unwrap_unchecked() };
+                self.0 &= self.0 - 1;
+                Some(result)
             }
-        }
-
-        #[inline(always)]
-        pub fn pop(&mut self) {
-            debug_assert!(!self.is_empty());
-            self.0 &= self.0 - 1;
         }
 
         #[inline(always)]
@@ -267,11 +263,10 @@ mod lib {
             let mut result = 0;
             loop {
                 if let Some(mut values) = board.available_values(coords) {
-                    while let Some(value) = values.front() {
+                    while let Some(value) = values.pop() {
                         board.occupy(coords, value);
                         result += solve(board, coords, f);
                         board.leave(coords);
-                        values.pop();
                     }
                     break;
                 } else if let Some(c) = coords.next() {
@@ -319,18 +314,16 @@ mod lib {
                 return 1;
             }
             if best_population > 1 && cells < BEST_THRESHOLD {
-                while let Some(value) = best_values.front() {
+                while let Some(value) = best_values.pop() {
                     board.occupy(best_coords, value);
                     result += solve(board, Coords::START, f);
                     board.leave(best_coords);
-                    best_values.pop();
                 }
             } else {
-                while let Some(value) = best_values.front() {
+                while let Some(value) = best_values.pop() {
                     board.occupy(best_coords, value);
                     result += solve_best(board, f);
                     board.leave(best_coords);
-                    best_values.pop();
                 }
             }
             result
@@ -456,8 +449,7 @@ mod lib {
             for bit_index in 0..(DIM as u8) {
                 let bv = BitVec::new_bit(bit_index);
                 assert_eq!(bv.0, 1 << bit_index);
-                assert_eq!(v.front().unwrap(), bit_index);
-                v.pop();
+                assert_eq!(v.pop().unwrap(), bit_index);
             }
             assert!(BitVec::new_mask(0).is_empty());
             assert_eq!(BitVec::new_mask(0).population(), 0);
