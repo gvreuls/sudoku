@@ -6,16 +6,16 @@ mod lib {
 
     #[derive(Debug, Clone, Copy)]
     pub struct Coords {
-        i: u8,
-        r: u8,
-        c: u8,
-        b: u8,
+        i: u32,
+        r: u32,
+        c: u32,
+        b: u32,
     }
 
     impl Coords {
         pub const START: Self = Self { i: 0, r: 0, c: 0, b: 0 };
         #[rustfmt::skip]
-        const BOX: [u8; DIM2] = [
+        const BOX: [u32; DIM2] = [
             0, 0, 0, 1, 1, 1, 2, 2, 2,
             0, 0, 0, 1, 1, 1, 2, 2, 2,
             0, 0, 0, 1, 1, 1, 2, 2, 2,
@@ -29,14 +29,14 @@ mod lib {
 
         #[inline(always)]
         #[must_use]
-        pub const fn new(row: u8, column: u8) -> Self {
-            Self::new_indexed(row, column, row * DIM as u8 + column)
+        pub const fn new(row: u32, column: u32) -> Self {
+            Self::new_indexed(row, column, row * DIM as u32 + column)
         }
 
         #[inline(always)]
         #[must_use]
-        const fn new_indexed(row: u8, column: u8, index: u8) -> Self {
-            debug_assert!(row < DIM as u8 && column < DIM as u8 && index < DIM2 as u8);
+        const fn new_indexed(row: u32, column: u32, index: u32) -> Self {
+            debug_assert!(row < DIM as u32 && column < DIM as u32 && index < DIM2 as u32);
             Self {
                 i: index,
                 r: row,
@@ -187,14 +187,14 @@ mod lib {
 
         #[inline]
         pub fn print(&self) {
-            for row in 0..(DIM as u8) {
+            for row in 0..(DIM as u32) {
                 let mut coords = Coords::new(row, 0);
                 let mut value = self.occupied[coords.i as usize];
                 if value != Self::EMPTY_CELL {
                     value += b'1';
                 }
                 print!("{}", value as char);
-                for column in 1..(DIM as u8) {
+                for column in 1..(DIM as u32) {
                     coords = Coords::new(row, column);
                     value = self.occupied[coords.i as usize];
                     if value != Self::EMPTY_CELL {
@@ -209,10 +209,10 @@ mod lib {
         #[inline(always)]
         #[must_use]
         pub const fn available_values(&self, coords: Coords) -> Option<BitVec> {
-            debug_assert!(coords.r < DIM as u8);
-            debug_assert!(coords.c < DIM as u8);
-            debug_assert!(coords.b < DIM as u8);
-            debug_assert!(coords.i < DIM2 as u8);
+            debug_assert!(coords.r < DIM as u32);
+            debug_assert!(coords.c < DIM as u32);
+            debug_assert!(coords.b < DIM as u32);
+            debug_assert!(coords.i < DIM2 as u32);
             if unsafe { *self.occupied.as_ptr().add(coords.i as usize) } == Self::EMPTY_CELL {
                 Some(
                     self.rows[coords.r as usize]
@@ -226,10 +226,10 @@ mod lib {
 
         #[inline(always)]
         pub fn occupy(&mut self, coords: Coords, value: u8) {
-            debug_assert!(coords.r < DIM as u8);
-            debug_assert!(coords.c < DIM as u8);
-            debug_assert!(coords.b < DIM as u8);
-            debug_assert!(coords.i < DIM2 as u8);
+            debug_assert!(coords.r < DIM as u32);
+            debug_assert!(coords.c < DIM as u32);
+            debug_assert!(coords.b < DIM as u32);
+            debug_assert!(coords.i < DIM2 as u32);
             let mask = BitVec::new_bit(value);
             debug_assert_eq!(self.available_values(coords).unwrap().and(mask), mask);
             self.rows[coords.r as usize].clear(mask);
@@ -240,10 +240,10 @@ mod lib {
 
         #[inline(always)]
         pub fn leave(&mut self, coords: Coords) {
-            debug_assert!(coords.r < DIM as u8);
-            debug_assert!(coords.c < DIM as u8);
-            debug_assert!(coords.b < DIM as u8);
-            debug_assert!(coords.i < DIM2 as u8);
+            debug_assert!(coords.r < DIM as u32);
+            debug_assert!(coords.c < DIM as u32);
+            debug_assert!(coords.b < DIM as u32);
+            debug_assert!(coords.i < DIM2 as u32);
             debug_assert_ne!(self.occupied[coords.i as usize], Self::EMPTY_CELL);
             let mask = BitVec::new_bit(self.occupied[coords.i as usize]);
             debug_assert_eq!(self.rows[coords.r as usize].and(mask), BitVec::new_mask(0));
@@ -427,13 +427,13 @@ mod lib {
         #[test]
         fn coords() {
             let mut prev: Option<Coords> = None;
-            for row in 0..(DIM as u8) {
-                for column in 0..(DIM as u8) {
+            for row in 0..(DIM as u32) {
+                for column in 0..(DIM as u32) {
                     let coords = Coords::new(row, column);
                     assert_eq!(coords.r, row);
                     assert_eq!(coords.c, column);
-                    assert_eq!(coords.b, (row / ROOT as u8) * ROOT as u8 + (column / ROOT as u8));
-                    assert_eq!(coords.i, row * DIM as u8 + column);
+                    assert_eq!(coords.b, (row / ROOT as u32) * ROOT as u32 + (column / ROOT as u32));
+                    assert_eq!(coords.i, row * DIM as u32 + column);
                     if let Some(p) = prev {
                         assert_eq!(p.next(), Some(coords));
                     }
@@ -514,7 +514,7 @@ mod lib {
             fn check_board(nb: &NaiveBoard, b: &Board) {
                 for r in 0..DIM {
                     for c in 0..DIM {
-                        let coords = Coords::new(r as u8, c as u8);
+                        let coords = Coords::new(r as u32, c as u32);
                         assert_eq!(nb[r][c], b.occupied[coords.i as usize]);
                         assert_eq!(available_values(nb, r, c), b.available_values(coords));
                     }
@@ -528,7 +528,7 @@ mod lib {
                 for c in 0..DIM {
                     for v in 0..(DIM as u8) {
                         nb[r][c] = v;
-                        let coords = Coords::new(r as u8, c as u8);
+                        let coords = Coords::new(r as u32, c as u32);
                         b.occupy(coords, v);
                         check_board(&nb, &b);
                         b.leave(coords);
@@ -538,7 +538,7 @@ mod lib {
             }
             for (r, c, v) in TEST_COORDS {
                 nb[r as usize][c as usize] = v;
-                b.occupy(Coords::new(r, c), v);
+                b.occupy(Coords::new(r as u32, c as u32), v);
                 check_board(&nb, &b);
             }
             b = Board::read(&mut StrIter::new(IMPROPERS[0].0)).unwrap();
