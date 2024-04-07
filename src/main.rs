@@ -69,12 +69,12 @@ mod lib {
     pub struct BitVec(u16);
 
     impl BitVec {
-        pub const ALL_SET: u16 = (1 << DIM) - 1;
+        pub const ALL_SET: Self = Self((1 << DIM) - 1);
 
         #[inline(always)]
         #[must_use]
         pub const fn new_mask(bit_mask: u16) -> Self {
-            debug_assert!(bit_mask <= Self::ALL_SET);
+            debug_assert!(bit_mask <= Self::ALL_SET.0);
             Self(bit_mask)
         }
 
@@ -135,16 +135,16 @@ mod lib {
     }
 
     impl Board {
-        const EMPTY: u8 = b'.';
+        const EMPTY_CELL: u8 = b'.';
 
         #[inline(always)]
         #[must_use]
         pub const fn new() -> Self {
             Self {
-                rows: [BitVec::new_mask(BitVec::ALL_SET); DIM],
-                columns: [BitVec::new_mask(BitVec::ALL_SET); DIM],
-                boxes: [BitVec::new_mask(BitVec::ALL_SET); DIM],
-                occupied: [Self::EMPTY; DIM2],
+                rows: [BitVec::ALL_SET; DIM],
+                columns: [BitVec::ALL_SET; DIM],
+                boxes: [BitVec::ALL_SET; DIM],
+                occupied: [Self::EMPTY_CELL; DIM2],
             }
         }
 
@@ -159,7 +159,7 @@ mod lib {
                             if byte.is_ascii_whitespace() {
                                 continue;
                             }
-                            if byte != Self::EMPTY {
+                            if byte != Self::EMPTY_CELL {
                                 if !(b'1'..=b'9').contains(&byte) {
                                     return Err(None);
                                 }
@@ -190,14 +190,14 @@ mod lib {
             for row in 0..(DIM as u8) {
                 let mut coords = Coords::new(row, 0);
                 let mut value = self.occupied[coords.i as usize];
-                if value != Self::EMPTY {
+                if value != Self::EMPTY_CELL {
                     value += b'1';
                 }
                 print!("{}", value as char);
                 for column in 1..(DIM as u8) {
                     coords = Coords::new(row, column);
                     value = self.occupied[coords.i as usize];
-                    if value != Self::EMPTY {
+                    if value != Self::EMPTY_CELL {
                         value += b'1';
                     }
                     print!(" {}", value as char);
@@ -213,7 +213,7 @@ mod lib {
             debug_assert!(coords.c < DIM as u8);
             debug_assert!(coords.b < DIM as u8);
             debug_assert!(coords.i < DIM2 as u8);
-            if unsafe { *self.occupied.as_ptr().add(coords.i as usize) } == Self::EMPTY {
+            if unsafe { *self.occupied.as_ptr().add(coords.i as usize) } == Self::EMPTY_CELL {
                 Some(
                     self.rows[coords.r as usize]
                         .and(self.columns[coords.c as usize])
@@ -244,7 +244,7 @@ mod lib {
             debug_assert!(coords.c < DIM as u8);
             debug_assert!(coords.b < DIM as u8);
             debug_assert!(coords.i < DIM2 as u8);
-            debug_assert_ne!(self.occupied[coords.i as usize], Self::EMPTY);
+            debug_assert_ne!(self.occupied[coords.i as usize], Self::EMPTY_CELL);
             let mask = BitVec::new_bit(self.occupied[coords.i as usize]);
             debug_assert_eq!(self.rows[coords.r as usize].and(mask), BitVec::new_mask(0));
             debug_assert_eq!(self.columns[coords.c as usize].and(mask), BitVec::new_mask(0));
@@ -252,7 +252,7 @@ mod lib {
             self.rows[coords.r as usize].set(mask);
             self.columns[coords.c as usize].set(mask);
             self.boxes[coords.b as usize].set(mask);
-            self.occupied[coords.i as usize] = Self::EMPTY;
+            self.occupied[coords.i as usize] = Self::EMPTY_CELL;
         }
     }
 
@@ -445,7 +445,7 @@ mod lib {
 
         #[test]
         fn bitvec() {
-            let mut v = BitVec::new_mask(BitVec::ALL_SET);
+            let mut v = BitVec::ALL_SET;
             for bit_index in 0..(DIM as u8) {
                 let bv = BitVec::new_bit(bit_index);
                 assert_eq!(bv.0, 1 << bit_index);
@@ -453,16 +453,16 @@ mod lib {
             }
             assert!(BitVec::new_mask(0).is_empty());
             assert_eq!(BitVec::new_mask(0).population(), 0);
-            for bits in 1..=BitVec::ALL_SET {
+            for bits in 1..=BitVec::ALL_SET.0 {
                 let bv = BitVec::new_mask(bits);
                 assert_eq!(bv.0, bits);
                 assert!(!bv.is_empty());
                 assert_eq!(bv.population(), bits.count_ones() as u8);
             }
-            for outer in 0..=BitVec::ALL_SET {
+            for outer in 0..=BitVec::ALL_SET.0 {
                 let ov = BitVec::new_mask(outer);
                 assert_eq!(ov.0, outer);
-                for inner in 0..=BitVec::ALL_SET {
+                for inner in 0..=BitVec::ALL_SET.0 {
                     let iv = BitVec::new_mask(inner);
                     assert_eq!(ov.and(iv), BitVec::new_mask(outer & inner));
                     v = ov;
@@ -482,10 +482,10 @@ mod lib {
             #[inline(always)]
             #[must_use]
             fn available_values(nb: &NaiveBoard, row: usize, column: usize) -> Option<BitVec> {
-                if nb[row][column] != Board::EMPTY {
+                if nb[row][column] != Board::EMPTY_CELL {
                     return None;
                 }
-                let mut avail = BitVec::new_mask(BitVec::ALL_SET);
+                let mut avail = BitVec::ALL_SET;
                 for c in 0..DIM {
                     let value = nb[row][c];
                     if value < DIM as u8 {
@@ -521,7 +521,7 @@ mod lib {
                 }
             }
 
-            let mut nb = [[Board::EMPTY; DIM]; DIM];
+            let mut nb = [[Board::EMPTY_CELL; DIM]; DIM];
             let mut b = Board::new();
             check_board(&nb, &b);
             for r in 0..DIM {
@@ -532,7 +532,7 @@ mod lib {
                         b.occupy(coords, v);
                         check_board(&nb, &b);
                         b.leave(coords);
-                        nb[r][c] = Board::EMPTY;
+                        nb[r][c] = Board::EMPTY_CELL;
                     }
                 }
             }
