@@ -6,14 +6,14 @@ mod lib {
 
     #[derive(Debug, Clone, Copy)]
     pub struct Coords {
+        i: u8,
         r: u8,
         c: u8,
         b: u8,
-        i: u8,
     }
 
     impl Coords {
-        pub const START: Self = Self { r: 0, c: 0, b: 0, i: 0 };
+        pub const START: Self = Self { i: 0, r: 0, c: 0, b: 0 };
         #[rustfmt::skip]
         const BOX: [u8; DIM2] = [
             0, 0, 0, 1, 1, 1, 2, 2, 2,
@@ -38,10 +38,10 @@ mod lib {
         const fn new_indexed(row: u8, column: u8, index: u8) -> Self {
             debug_assert!(row < DIM as u8 && column < DIM as u8 && index < DIM2 as u8);
             Self {
+                i: index,
                 r: row,
                 c: column,
                 b: unsafe { *Self::BOX.as_ptr().add(index as usize) },
-                i: index,
             }
         }
 
