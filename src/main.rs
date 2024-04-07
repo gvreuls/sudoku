@@ -109,9 +109,9 @@ mod lib {
             if self.is_empty() {
                 None
             } else {
-                let result = unsafe { self.0.trailing_zeros().try_into().unwrap_unchecked() };
+                let bit_index = unsafe { self.0.trailing_zeros().try_into().unwrap_unchecked() };
                 self.0 &= self.0 - 1;
-                Some(result)
+                Some(bit_index)
             }
         }
 
@@ -153,8 +153,8 @@ mod lib {
             let mut board = Self::new();
             let mut coords = Coords::START;
             loop {
-                if let Some(res) = bytes.next() {
-                    match res {
+                if let Some(result) = bytes.next() {
+                    match result {
                         Ok(byte) => {
                             if byte.is_ascii_whitespace() {
                                 continue;
@@ -170,8 +170,8 @@ mod lib {
                                 }
                                 board.occupy(coords, value);
                             }
-                            if let Some(c) = coords.next() {
-                                coords = c;
+                            if let Some(next) = coords.next() {
+                                coords = next;
                             } else {
                                 break;
                             }
@@ -260,51 +260,51 @@ mod lib {
     pub fn solve_and<F: Fn(&Board)>(board: &mut Board, f: F) -> u128 {
         #[inline]
         fn solve<F: Fn(&Board)>(board: &mut Board, mut coords: Coords, f: &F) -> u128 {
-            let mut result = 0;
+            let mut solutions = 0;
             loop {
-                if let Some(mut values) = board.available_values(coords) {
-                    while let Some(value) = values.pop() {
+                if let Some(mut possibilities) = board.available_values(coords) {
+                    while let Some(value) = possibilities.pop() {
                         board.occupy(coords, value);
-                        result += solve(board, coords, f);
+                        solutions += solve(board, coords, f);
                         board.leave(coords);
                     }
                     break;
-                } else if let Some(c) = coords.next() {
-                    coords = c;
+                } else if let Some(next) = coords.next() {
+                    coords = next;
                 } else {
                     f(board);
                     return 1;
                 }
             }
-            result
+            solutions
         }
 
         #[inline]
         fn solve_best<F: Fn(&Board)>(board: &mut Board, f: &F) -> u128 {
-            let mut result = 0;
+            let mut solutions = 0;
             let mut best_coords = Coords::START;
-            let mut best_values = BitVec::new_mask(0);
+            let mut best_possibilities = BitVec::new_mask(0);
             let mut best_population = DIM as u8 + 1;
             let mut coords = Coords::START;
             let mut cells = 0;
             loop {
-                if let Some(values) = board.available_values(coords) {
-                    let population = values.population();
+                if let Some(possibilities) = board.available_values(coords) {
+                    let population = possibilities.population();
                     if population == 0 {
-                        return result;
+                        return solutions;
                     }
                     cells += 1;
                     if population < best_population {
                         best_coords = coords;
-                        best_values = values;
+                        best_possibilities = possibilities;
                         best_population = population;
                         if best_population == 1 {
                             break;
                         }
                     }
                 }
-                if let Some(c) = coords.next() {
-                    coords = c;
+                if let Some(next) = coords.next() {
+                    coords = next;
                 } else {
                     break;
                 }
@@ -314,19 +314,19 @@ mod lib {
                 return 1;
             }
             if best_population > 1 && cells < BEST_THRESHOLD {
-                while let Some(value) = best_values.pop() {
+                while let Some(value) = best_possibilities.pop() {
                     board.occupy(best_coords, value);
-                    result += solve(board, Coords::START, f);
+                    solutions += solve(board, Coords::START, f);
                     board.leave(best_coords);
                 }
             } else {
-                while let Some(value) = best_values.pop() {
+                while let Some(value) = best_possibilities.pop() {
                     board.occupy(best_coords, value);
-                    result += solve_best(board, f);
+                    solutions += solve_best(board, f);
                     board.leave(best_coords);
                 }
             }
-            result
+            solutions
         }
 
         solve_best(board, &f)
