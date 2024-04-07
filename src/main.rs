@@ -73,7 +73,7 @@ mod lib {
 
         #[inline(always)]
         #[must_use]
-        pub const fn new(bit_mask: u16) -> Self {
+        pub const fn new_mask(bit_mask: u16) -> Self {
             debug_assert!(bit_mask <= Self::ALL_SET);
             Self(bit_mask)
         }
@@ -100,7 +100,7 @@ mod lib {
         #[inline(always)]
         #[must_use]
         pub const fn and(self, other: Self) -> Self {
-            Self::new(self.0 & other.0)
+            Self::new_mask(self.0 & other.0)
         }
 
         #[inline(always)]
@@ -145,9 +145,9 @@ mod lib {
         #[must_use]
         pub const fn new() -> Self {
             Self {
-                rows: [BitVec::new(BitVec::ALL_SET); DIM],
-                columns: [BitVec::new(BitVec::ALL_SET); DIM],
-                boxes: [BitVec::new(BitVec::ALL_SET); DIM],
+                rows: [BitVec::new_mask(BitVec::ALL_SET); DIM],
+                columns: [BitVec::new_mask(BitVec::ALL_SET); DIM],
+                boxes: [BitVec::new_mask(BitVec::ALL_SET); DIM],
                 occupied: [Self::EMPTY; DIM2],
             }
         }
@@ -250,9 +250,9 @@ mod lib {
             debug_assert!(coords.i < DIM2 as u8);
             debug_assert_ne!(self.occupied[coords.i as usize], Self::EMPTY);
             let mask = BitVec::new_bit(self.occupied[coords.i as usize]);
-            debug_assert_eq!(self.rows[coords.r as usize].and(mask), BitVec::new(0));
-            debug_assert_eq!(self.columns[coords.c as usize].and(mask), BitVec::new(0));
-            debug_assert_eq!(self.boxes[coords.b as usize].and(mask), BitVec::new(0));
+            debug_assert_eq!(self.rows[coords.r as usize].and(mask), BitVec::new_mask(0));
+            debug_assert_eq!(self.columns[coords.c as usize].and(mask), BitVec::new_mask(0));
+            debug_assert_eq!(self.boxes[coords.b as usize].and(mask), BitVec::new_mask(0));
             self.rows[coords.r as usize].set(mask);
             self.columns[coords.c as usize].set(mask);
             self.boxes[coords.b as usize].set(mask);
@@ -288,7 +288,7 @@ mod lib {
         fn solve_best<F: Fn(&Board)>(board: &mut Board, f: &F) -> u128 {
             let mut result = 0;
             let mut best_coords = Coords::START;
-            let mut best_values = BitVec::new(0);
+            let mut best_values = BitVec::new_mask(0);
             let mut best_population = DIM as u8 + 1;
             let mut coords = Coords::START;
             let mut cells = 0;
@@ -452,27 +452,27 @@ mod lib {
 
         #[test]
         fn bitvec() {
-            let mut v = BitVec::new(BitVec::ALL_SET);
+            let mut v = BitVec::new_mask(BitVec::ALL_SET);
             for bit_index in 0..(DIM as u8) {
                 let bv = BitVec::new_bit(bit_index);
                 assert_eq!(bv.0, 1 << bit_index);
                 assert_eq!(v.front().unwrap(), bit_index);
                 v.pop();
             }
-            assert!(BitVec::new(0).is_empty());
-            assert_eq!(BitVec::new(0).population(), 0);
+            assert!(BitVec::new_mask(0).is_empty());
+            assert_eq!(BitVec::new_mask(0).population(), 0);
             for bits in 1..=BitVec::ALL_SET {
-                let bv = BitVec::new(bits);
+                let bv = BitVec::new_mask(bits);
                 assert_eq!(bv.0, bits);
                 assert!(!bv.is_empty());
                 assert_eq!(bv.population(), bits.count_ones() as u8);
             }
             for outer in 0..=BitVec::ALL_SET {
-                let ov = BitVec::new(outer);
+                let ov = BitVec::new_mask(outer);
                 assert_eq!(ov.0, outer);
                 for inner in 0..=BitVec::ALL_SET {
-                    let iv = BitVec::new(inner);
-                    assert_eq!(ov.and(iv), BitVec::new(outer & inner));
+                    let iv = BitVec::new_mask(inner);
+                    assert_eq!(ov.and(iv), BitVec::new_mask(outer & inner));
                     v = ov;
                     v.set(iv);
                     assert_eq!(v.0, outer | inner);
@@ -493,7 +493,7 @@ mod lib {
                 if nb[row][column] != Board::EMPTY {
                     return None;
                 }
-                let mut avail = BitVec::new(BitVec::ALL_SET);
+                let mut avail = BitVec::new_mask(BitVec::ALL_SET);
                 for c in 0..DIM {
                     let value = nb[row][c];
                     if value < DIM as u8 {
