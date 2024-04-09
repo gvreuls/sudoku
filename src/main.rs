@@ -95,7 +95,7 @@ mod lib {
         #[inline(always)]
         #[must_use]
         pub fn population(self) -> u8 {
-            unsafe { self.0.count_ones().try_into().unwrap_unchecked() }
+            self.0.count_ones() as u8
         }
 
         #[inline(always)]
@@ -110,7 +110,7 @@ mod lib {
             if self.is_empty() {
                 None
             } else {
-                let bit_index = unsafe { self.0.trailing_zeros().try_into().unwrap_unchecked() };
+                let bit_index = self.0.trailing_zeros() as u8;
                 self.0 &= self.0 - 1;
                 Some(bit_index)
             }
