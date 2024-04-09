@@ -482,19 +482,19 @@ mod lib {
 
             #[inline(always)]
             #[must_use]
-            fn available_values(nb: &NaiveBoard, row: usize, column: usize) -> Option<BitVec> {
-                if nb[row][column] != Board::EMPTY_CELL {
+            fn available_values(naive_board: &NaiveBoard, row: usize, column: usize) -> Option<BitVec> {
+                if naive_board[row][column] != Board::EMPTY_CELL {
                     return None;
                 }
                 let mut avail = BitVec::ALL_SET;
                 for c in 0..DIM {
-                    let value = nb[row][c];
+                    let value = naive_board[row][c];
                     if value < DIM as u8 {
                         avail.clear(BitVec::new_bit(value));
                     }
                 }
                 for r in 0..DIM {
-                    let value = nb[r][column];
+                    let value = naive_board[r][column];
                     if value < DIM as u8 {
                         avail.clear(BitVec::new_bit(value));
                     }
@@ -503,7 +503,7 @@ mod lib {
                 let column_ofs = (column / ROOT) * ROOT;
                 for r in row_ofs..(row_ofs + ROOT) {
                     for c in column_ofs..(column_ofs + ROOT) {
-                        let value = nb[r][c];
+                        let value = naive_board[r][c];
                         if value < DIM as u8 {
                             avail.clear(BitVec::new_bit(value));
                         }
@@ -512,50 +512,50 @@ mod lib {
                 Some(avail)
             }
 
-            fn check_board(nb: &NaiveBoard, b: &Board) {
-                for r in 0..DIM {
-                    for c in 0..DIM {
-                        let coords = Coords::new(r as u32, c as u32);
-                        assert_eq!(nb[r][c], b.occupied[coords.i as usize]);
-                        assert_eq!(available_values(nb, r, c), b.available_values(coords));
+            fn check_board(naive_board: &NaiveBoard, board: &Board) {
+                for row in 0..DIM {
+                    for column in 0..DIM {
+                        let coords = Coords::new(row as u32, column as u32);
+                        assert_eq!(naive_board[row][column], board.occupied[coords.i as usize]);
+                        assert_eq!(available_values(naive_board, row, column), board.available_values(coords));
                     }
                 }
             }
 
-            let mut nb = [[Board::EMPTY_CELL; DIM]; DIM];
-            let mut b = Board::new();
-            check_board(&nb, &b);
-            for r in 0..DIM {
-                for c in 0..DIM {
-                    for v in 0..(DIM as u8) {
-                        nb[r][c] = v;
-                        let coords = Coords::new(r as u32, c as u32);
-                        b.occupy(coords, v);
-                        check_board(&nb, &b);
-                        b.leave(coords);
-                        nb[r][c] = Board::EMPTY_CELL;
+            let mut naive_board = [[Board::EMPTY_CELL; DIM]; DIM];
+            let mut board = Board::new();
+            check_board(&naive_board, &board);
+            for row in 0..DIM {
+                for column in 0..DIM {
+                    for value in 0..(DIM as u8) {
+                        naive_board[row][column] = value;
+                        let coords = Coords::new(row as u32, column as u32);
+                        board.occupy(coords, value);
+                        check_board(&naive_board, &board);
+                        board.leave(coords);
+                        naive_board[row][column] = Board::EMPTY_CELL;
                     }
                 }
             }
-            for (r, c, v) in TEST_COORDS {
-                nb[r as usize][c as usize] = v;
-                b.occupy(Coords::new(r as u32, c as u32), v);
-                check_board(&nb, &b);
+            for (row, column, value) in TEST_COORDS {
+                naive_board[row as usize][column as usize] = value;
+                board.occupy(Coords::new(row as u32, column as u32), value);
+                check_board(&naive_board, &board);
             }
-            b = Board::read(&mut StrIter::new(IMPROPERS[0].0)).unwrap();
-            check_board(&nb, &b);
+            board = Board::read(&mut StrIter::new(IMPROPERS[0].0)).unwrap();
+            check_board(&naive_board, &board);
         }
 
         #[test]
         fn solve() {
-            let mut b; // = Board::new();
+            let mut board;
             for (str, solutions) in IMPROPERS {
-                b = Board::read(&mut StrIter::new(str)).unwrap();
-                assert_eq!(solve_and(&mut b, |_| ()), solutions as u128);
+                board = Board::read(&mut StrIter::new(str)).unwrap();
+                assert_eq!(solve_and(&mut board, |_| ()), solutions as u128);
             }
             for str in PROPERS {
-                b = Board::read(&mut StrIter::new(str)).unwrap();
-                assert_eq!(solve_and(&mut b, |_| ()), 1);
+                board = Board::read(&mut StrIter::new(str)).unwrap();
+                assert_eq!(solve_and(&mut board, |_| ()), 1);
             }
         }
     }
