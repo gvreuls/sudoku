@@ -165,8 +165,10 @@ mod lib {
                                     return Err(None);
                                 }
                                 let value = byte - b'1';
-                                let avail = board.available_values(coords);
-                                if avail.is_none() || avail.is_some_and(|bv| bv.and(BitVec::new_bit(value)).is_empty()) {
+                                let possibilities = board.available_values(coords);
+                                if possibilities.is_none()
+                                    || possibilities.is_some_and(|values| values.and(BitVec::new_bit(value)).is_empty())
+                                {
                                     return Err(None);
                                 }
                                 board.occupy(coords, value);
@@ -286,15 +288,15 @@ mod lib {
             let mut best_coords = Coords::START;
             let mut best_possibilities = BitVec::ALL_CLEAR;
             let mut best_population = DIM as u8 + 1;
+            let mut empty_cells = 0;
             let mut coords = Coords::START;
-            let mut cells = 0;
             loop {
                 if let Some(possibilities) = board.available_values(coords) {
                     let population = possibilities.population();
                     if population == 0 {
                         return solutions;
                     }
-                    cells += 1;
+                    empty_cells += 1;
                     if population < best_population {
                         best_coords = coords;
                         best_possibilities = possibilities;
@@ -314,7 +316,7 @@ mod lib {
                 f(board);
                 return 1;
             }
-            if best_population > 1 && cells < BEST_THRESHOLD {
+            if best_population > 1 && empty_cells < BEST_THRESHOLD {
                 while let Some(value) = best_possibilities.pop() {
                     board.occupy(best_coords, value);
                     solutions += solve(board, Coords::START, f);
