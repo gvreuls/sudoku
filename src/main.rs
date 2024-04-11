@@ -2,7 +2,8 @@ mod lib {
     const ROOT: usize = 3;
     const DIM: usize = ROOT * ROOT;
     const DIM2: usize = DIM * DIM;
-    const BEST_THRESHOLD: usize = DIM * ROOT + 1;
+    const BEST_THRESHOLD_MAX: usize = DIM * ROOT + 1;
+    const BEST_THRESHOLD_MIN: usize = (DIM + 2) * (ROOT - 1);
 
     #[derive(Debug, Clone, Copy)]
     pub struct Coords {
@@ -283,7 +284,7 @@ mod lib {
         }
 
         #[inline]
-        fn solve_best<F: FnMut(&Board)>(board: &mut Board, f: &mut F) -> u128 {
+        fn solve_best<F: FnMut(&Board)>(board: &mut Board, mut best_threshold: usize, f: &mut F) -> u128 {
             let mut solutions = 0;
             let mut best_coords = Coords::START;
             let mut best_possibilities = BitVec::ALL_CLEAR;
@@ -302,6 +303,9 @@ mod lib {
                         best_possibilities = possibilities;
                         best_population = population;
                         if best_population == 1 {
+                            if best_threshold > BEST_THRESHOLD_MIN {
+                                best_threshold -= 1;
+                            }
                             break;
                         }
                     }
@@ -316,7 +320,7 @@ mod lib {
                 f(board);
                 return 1;
             }
-            if best_population > 1 && empty_cells < BEST_THRESHOLD {
+            if best_population > 1 && empty_cells < best_threshold {
                 while let Some(value) = best_possibilities.pop() {
                     board.occupy(best_coords, value);
                     solutions += solve(board, Coords::START, f);
@@ -325,14 +329,14 @@ mod lib {
             } else {
                 while let Some(value) = best_possibilities.pop() {
                     board.occupy(best_coords, value);
-                    solutions += solve_best(board, f);
+                    solutions += solve_best(board, best_threshold, f);
                     board.leave(best_coords);
                 }
             }
             solutions
         }
 
-        solve_best(board, &mut f)
+        solve_best(board, BEST_THRESHOLD_MAX, &mut f)
     }
 
     #[cfg(test)]
