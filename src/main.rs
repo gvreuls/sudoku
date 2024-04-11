@@ -2,7 +2,7 @@ mod lib {
     const ROOT: usize = 3;
     const DIM: usize = ROOT * ROOT;
     const DIM2: usize = DIM * DIM;
-    const BEST_THRESHOLD: usize = (DIM + 1) * ROOT;
+    const BEST_THRESHOLD: usize = DIM * ROOT + 1;
 
     #[derive(Debug, Clone, Copy)]
     pub struct Coords {
