@@ -2,8 +2,8 @@ mod lib {
     const ROOT: usize = 3;
     const DIM: usize = ROOT * ROOT;
     const DIM2: usize = DIM * DIM;
-    const BEST_THRESHOLD_MAX: usize = DIM * ROOT + 1;
-    const BEST_THRESHOLD_MIN: usize = (DIM + 2) * (ROOT - 1);
+    const BEST_THRESHOLD_MAX: u32 = (DIM * ROOT + 1) as u32;
+    const BEST_THRESHOLD_MIN: u32 = ((DIM + 2) * (ROOT - 1)) as u32;
 
     #[derive(Debug, Clone, Copy)]
     pub struct Coords {
@@ -284,7 +284,7 @@ mod lib {
         }
 
         #[inline]
-        fn solve_best<F: FnMut(&Board)>(board: &mut Board, mut best_threshold: usize, f: &mut F) -> u128 {
+        fn solve_best<F: FnMut(&Board)>(board: &mut Board, mut best_threshold: u32, f: &mut F) -> u128 {
             let mut solutions = 0;
             let mut best_coords = Coords::START;
             let mut best_possibilities = BitVec::ALL_CLEAR;
