@@ -260,9 +260,9 @@ mod lib {
     }
 
     #[inline]
-    pub fn solve_and<F: Fn(&Board)>(board: &mut Board, f: F) -> u128 {
+    pub fn solve_and<F: FnMut(&Board)>(board: &mut Board, mut f: F) -> u128 {
         #[inline]
-        fn solve<F: Fn(&Board)>(board: &mut Board, mut coords: Coords, f: &F) -> u128 {
+        fn solve<F: FnMut(&Board)>(board: &mut Board, mut coords: Coords, f: &mut F) -> u128 {
             let mut solutions = 0;
             loop {
                 if let Some(mut possibilities) = board.available_values(coords) {
@@ -283,7 +283,7 @@ mod lib {
         }
 
         #[inline]
-        fn solve_best<F: Fn(&Board)>(board: &mut Board, f: &F) -> u128 {
+        fn solve_best<F: FnMut(&Board)>(board: &mut Board, f: &mut F) -> u128 {
             let mut solutions = 0;
             let mut best_coords = Coords::START;
             let mut best_possibilities = BitVec::ALL_CLEAR;
@@ -332,7 +332,7 @@ mod lib {
             solutions
         }
 
-        solve_best(board, &f)
+        solve_best(board, &mut f)
     }
 
     #[cfg(test)]
@@ -584,13 +584,18 @@ fn main() -> Result<(), std::io::Error> {
 
     let lock = std::io::stdin().lock();
     let mut iter = lock.bytes().peekable();
+    let mut first_sudoku = true;
     while iter.peek().is_some() {
         match Board::read(&mut iter) {
             Ok(mut board) => {
                 println!(
                     "solutions: {}",
                     solve_and(&mut board, |b| {
-                        println!();
+                        if first_sudoku {
+                            first_sudoku = false;
+                        } else {
+                            println!();
+                        }
                         b.print();
                     })
                 );
