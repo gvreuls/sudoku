@@ -190,27 +190,30 @@ mod lib {
         }
 
         #[inline]
-        pub fn print(&self) {
-            use std::io::Write;
-
-            let mut lock = std::io::stdout().lock();
+        pub fn write<T: std::io::Write>(&self, mut buffer: T, pretty: bool) -> std::io::Result<()> {
             for row in 0..(DIM as u32) {
                 let mut coords = Coords::new(row, 0);
                 let mut value = self.occupied[coords.i as usize];
                 if value != Self::EMPTY_CELL {
                     value += b'1';
                 }
-                write!(lock, "{}", value as char).unwrap();
+                write!(buffer, "{}", value as char)?;
                 for column in 1..(DIM as u32) {
                     coords = Coords::new(row, column);
                     value = self.occupied[coords.i as usize];
                     if value != Self::EMPTY_CELL {
                         value += b'1';
                     }
-                    write!(lock, " {}", value as char).unwrap();
+                    if pretty {
+                        write!(buffer, " ")?;
+                    }
+                    write!(buffer, "{}", value as char)?;
                 }
-                writeln!(lock).unwrap();
+                if pretty {
+                    writeln!(buffer)?;
+                }
             }
+            Ok(())
         }
 
         #[inline(always)]
@@ -587,10 +590,10 @@ mod lib {
 
 fn main() -> std::io::Result<()> {
     use lib::*;
-    use std::io::Read;
+    use std::io::{Read, Write};
 
-    let lock = std::io::stdin().lock();
-    let mut iter = lock.bytes().peekable();
+    let ilock = std::io::stdin().lock();
+    let mut iter = ilock.bytes().peekable();
     let mut first_sudoku = true;
     while iter.peek().is_some() {
         match Board::read(&mut iter) {
@@ -598,12 +601,13 @@ fn main() -> std::io::Result<()> {
                 println!(
                     "solutions: {}",
                     solve_and(&mut board, |b| {
+                        let mut olock = std::io::stdout().lock();
                         if first_sudoku {
                             first_sudoku = false;
                         } else {
-                            println!();
+                            writeln!(olock).unwrap();
                         }
-                        b.print();
+                        b.write(olock, true).unwrap();
                     })
                 );
                 while iter
