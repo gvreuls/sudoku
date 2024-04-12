@@ -190,24 +190,28 @@ mod lib {
         }
 
         #[inline]
-        pub fn print(&self) {
+        pub fn print(&self) -> std::io::Result<()> {
+            use std::io::Write;
+
+            let mut lock = std::io::stdout().lock();
             for row in 0..(DIM as u32) {
                 let mut coords = Coords::new(row, 0);
                 let mut value = self.occupied[coords.i as usize];
                 if value != Self::EMPTY_CELL {
                     value += b'1';
                 }
-                print!("{}", value as char);
+                write!(lock, "{}", value as char)?;
                 for column in 1..(DIM as u32) {
                     coords = Coords::new(row, column);
                     value = self.occupied[coords.i as usize];
                     if value != Self::EMPTY_CELL {
                         value += b'1';
                     }
-                    print!(" {}", value as char);
+                    write!(lock, " {}", value as char)?;
                 }
-                println!();
+                writeln!(lock)?;
             }
+            Ok(())
         }
 
         #[inline(always)]
@@ -261,30 +265,34 @@ mod lib {
     }
 
     #[inline]
-    pub fn solve_and<F: FnMut(&Board)>(board: &mut Board, mut f: F) -> u128 {
+    pub fn solve_and<F: FnMut(&Board) -> std::io::Result<()>>(board: &mut Board, mut f: F) -> std::io::Result<u128> {
         #[inline]
-        fn solve<F: FnMut(&Board)>(board: &mut Board, mut coords: Coords, f: &mut F) -> u128 {
+        fn solve<F: FnMut(&Board) -> std::io::Result<()>>(
+            board: &mut Board, mut coords: Coords, f: &mut F,
+        ) -> std::io::Result<u128> {
             let mut solutions = 0;
             loop {
                 if let Some(mut possibilities) = board.available_values(coords) {
                     while let Some(value) = possibilities.pop() {
                         board.occupy(coords, value);
-                        solutions += solve(board, coords, f);
+                        solutions += solve(board, coords, f)?;
                         board.leave(coords);
                     }
                     break;
                 } else if let Some(next) = coords.next() {
                     coords = next;
                 } else {
-                    f(board);
-                    return 1;
+                    f(board)?;
+                    return Ok(1);
                 }
             }
-            solutions
+            Ok(solutions)
         }
 
         #[inline]
-        fn solve_best<F: FnMut(&Board)>(board: &mut Board, mut best_threshold: u32, f: &mut F) -> u128 {
+        fn solve_best<F: FnMut(&Board) -> std::io::Result<()>>(
+            board: &mut Board, mut best_threshold: u32, f: &mut F,
+        ) -> std::io::Result<u128> {
             let mut solutions = 0;
             let mut best_coords = Coords::START;
             let mut best_possibilities = BitVec::ALL_CLEAR;
@@ -295,7 +303,7 @@ mod lib {
                 if let Some(possibilities) = board.available_values(coords) {
                     let population = possibilities.population();
                     if population == 0 {
-                        return solutions;
+                        return Ok(solutions);
                     }
                     empty_cells += 1;
                     if population < best_population {
@@ -317,23 +325,23 @@ mod lib {
                 }
             }
             if best_population == DIM as u8 + 1 {
-                f(board);
-                return 1;
+                f(board)?;
+                return Ok(1);
             }
             if best_population > 1 && empty_cells < best_threshold {
                 while let Some(value) = best_possibilities.pop() {
                     board.occupy(best_coords, value);
-                    solutions += solve(board, Coords::START, f);
+                    solutions += solve(board, Coords::START, f)?;
                     board.leave(best_coords);
                 }
             } else {
                 while let Some(value) = best_possibilities.pop() {
                     board.occupy(best_coords, value);
-                    solutions += solve_best(board, best_threshold, f);
+                    solutions += solve_best(board, best_threshold, f)?;
                     board.leave(best_coords);
                 }
             }
-            solutions
+            Ok(solutions)
         }
 
         solve_best(board, BEST_THRESHOLD_MAX, &mut f)
@@ -572,11 +580,11 @@ mod lib {
             let mut board;
             for (str, solutions) in IMPROPERS {
                 board = Board::read(&mut StrIter::new(str)).unwrap();
-                assert_eq!(solve_and(&mut board, |_| ()), solutions as u128);
+                assert_eq!(solve_and(&mut board, |_| Ok(())).unwrap(), solutions as u128);
             }
             for str in PROPERS {
                 board = Board::read(&mut StrIter::new(str)).unwrap();
-                assert_eq!(solve_and(&mut board, |_| ()), 1);
+                assert_eq!(solve_and(&mut board, |_| Ok(())).unwrap(), 1);
             }
         }
     }
@@ -584,25 +592,26 @@ mod lib {
 
 fn main() -> std::io::Result<()> {
     use lib::*;
-    use std::io::Read;
+    use std::io::{Read, Write};
 
-    let lock = std::io::stdin().lock();
-    let mut iter = lock.bytes().peekable();
+    let ilock = std::io::stdin().lock();
+    let mut iter = ilock.bytes().peekable();
     let mut first_sudoku = true;
     while iter.peek().is_some() {
         match Board::read(&mut iter) {
             Ok(mut board) => {
-                println!(
+                writeln!(
+                    std::io::stdout().lock(),
                     "solutions: {}",
                     solve_and(&mut board, |b| {
                         if first_sudoku {
                             first_sudoku = false;
                         } else {
-                            println!();
+                            writeln!(std::io::stdout().lock())?;
                         }
-                        b.print();
-                    })
-                );
+                        b.print()
+                    })?
+                )?;
                 while iter
                     .peek()
                     .is_some_and(|result| result.as_ref().is_ok_and(|&byte| byte.is_ascii_whitespace()))
@@ -612,7 +621,7 @@ fn main() -> std::io::Result<()> {
             }
             Err(result) => match result {
                 Some(err) => return Err(err),
-                None => eprintln!("invalid sudoku!"),
+                None => writeln!(std::io::stderr().lock(), "invalid sudoku!")?,
             },
         }
     }
