@@ -582,7 +582,7 @@ mod lib {
     }
 }
 
-fn main() -> Result<(), std::io::Error> {
+fn main() -> std::io::Result<()> {
     use lib::*;
     use std::io::Read;
 
