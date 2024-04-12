@@ -191,22 +191,25 @@ mod lib {
 
         #[inline]
         pub fn print(&self) {
+            use std::io::Write;
+
+            let mut lock = std::io::stdout().lock();
             for row in 0..(DIM as u32) {
                 let mut coords = Coords::new(row, 0);
                 let mut value = self.occupied[coords.i as usize];
                 if value != Self::EMPTY_CELL {
                     value += b'1';
                 }
-                print!("{}", value as char);
+                write!(lock, "{}", value as char).unwrap();
                 for column in 1..(DIM as u32) {
                     coords = Coords::new(row, column);
                     value = self.occupied[coords.i as usize];
                     if value != Self::EMPTY_CELL {
                         value += b'1';
                     }
-                    print!(" {}", value as char);
+                    write!(lock, " {}", value as char).unwrap();
                 }
-                println!();
+                writeln!(lock).unwrap();
             }
         }
 
