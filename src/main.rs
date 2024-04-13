@@ -190,26 +190,28 @@ mod lib {
         }
 
         #[inline]
-        pub fn print(&self) -> std::io::Result<()> {
-            use std::io::Write;
-
-            let mut lock = std::io::stdout().lock();
+        pub fn write<T: std::io::Write>(&self, mut buffer: T, pretty: bool) -> std::io::Result<()> {
             for row in 0..(DIM as u32) {
                 let mut coords = Coords::new(row, 0);
                 let mut value = self.occupied[coords.i as usize];
                 if value != Self::EMPTY_CELL {
                     value += b'1';
                 }
-                write!(lock, "{}", value as char)?;
+                write!(buffer, "{}", value as char)?;
                 for column in 1..(DIM as u32) {
                     coords = Coords::new(row, column);
                     value = self.occupied[coords.i as usize];
                     if value != Self::EMPTY_CELL {
                         value += b'1';
                     }
-                    write!(lock, " {}", value as char)?;
+                    if pretty {
+                        write!(buffer, " ")?;
+                    }
+                    write!(buffer, "{}", value as char)?;
                 }
-                writeln!(lock)?;
+                if pretty {
+                    writeln!(buffer)?;
+                }
             }
             Ok(())
         }
@@ -604,12 +606,13 @@ fn main() -> std::io::Result<()> {
                     std::io::stdout().lock(),
                     "solutions: {}",
                     solve_and(&mut board, |b| {
+                        let mut olock = std::io::stdout().lock();
                         if first_sudoku {
                             first_sudoku = false;
                         } else {
-                            writeln!(std::io::stdout().lock())?;
+                            writeln!(olock)?;
                         }
-                        b.print()
+                        b.write(olock, true)
                     })?
                 )?;
                 while iter
