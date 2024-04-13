@@ -190,7 +190,7 @@ mod lib {
         }
 
         #[inline]
-        pub fn write<T: std::io::Write>(&self, mut buffer: T, pretty: bool) -> std::io::Result<()> {
+        pub fn write<T: std::io::Write>(&self,buffer: &mut T, pretty: bool) -> std::io::Result<()> {
             for row in 0..(DIM as u32) {
                 let mut coords = Coords::new(row, 0);
                 let mut value = self.occupied[coords.i as usize];
@@ -592,7 +592,8 @@ mod lib {
     }
 }
 
-fn main() -> std::io::Result<()> {
+#[inline]
+fn filter_solve(pretty: bool) -> std::io::Result<()> {
     use lib::*;
     use std::io::{Read, Write};
 
@@ -612,7 +613,11 @@ fn main() -> std::io::Result<()> {
                         } else {
                             writeln!(olock)?;
                         }
-                        b.write(olock, true)
+                        b.write(&mut olock, pretty)?;
+                        if !pretty {
+                            writeln!(olock)?;
+                        }
+                        Ok(())
                     })?
                 )?;
                 while iter
@@ -629,4 +634,8 @@ fn main() -> std::io::Result<()> {
         }
     }
     Ok(())
+}
+
+fn main() -> std::io::Result<()> {
+    filter_solve(true)
 }
