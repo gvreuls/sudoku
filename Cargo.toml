@@ -2,6 +2,7 @@
 name = "sudoku"
 version = "0.2.1"
 authors = ["Guy Vreuls"]
+description = "A sudoku solving filter."
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
