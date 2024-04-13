@@ -190,7 +190,7 @@ mod lib {
         }
 
         #[inline]
-        pub fn write<T: std::io::Write>(&self,buffer: &mut T, pretty: bool) -> std::io::Result<()> {
+        pub fn write<T: std::io::Write>(&self, buffer: &mut T, pretty: bool) -> std::io::Result<()> {
             for row in 0..(DIM as u32) {
                 let mut coords = Coords::new(row, 0);
                 let mut value = self.occupied[coords.i as usize];
@@ -592,34 +592,32 @@ mod lib {
     }
 }
 
-#[inline]
-fn filter_solve(pretty: bool) -> std::io::Result<()> {
+#[inline(always)]
+fn filter_solve(pretty_print: bool) -> std::io::Result<()> {
     use lib::*;
     use std::io::{Read, Write};
 
-    let ilock = std::io::stdin().lock();
-    let mut iter = ilock.bytes().peekable();
+    let stdout = std::io::stdout();
+    let stderr = std::io::stderr();
+    let mut iter = std::io::stdin().lock().bytes().peekable();
     let mut first_sudoku = true;
     while iter.peek().is_some() {
         match Board::read(&mut iter) {
             Ok(mut board) => {
-                writeln!(
-                    std::io::stdout().lock(),
-                    "solutions: {}",
-                    solve_and(&mut board, |b| {
-                        let mut olock = std::io::stdout().lock();
-                        if first_sudoku {
-                            first_sudoku = false;
-                        } else {
-                            writeln!(olock)?;
-                        }
-                        b.write(&mut olock, pretty)?;
-                        if !pretty {
-                            writeln!(olock)?;
-                        }
-                        Ok(())
-                    })?
-                )?;
+                let solutions = solve_and(&mut board, |b| {
+                    let mut olock = stdout.lock();
+                    if first_sudoku {
+                        first_sudoku = false;
+                    } else {
+                        writeln!(olock)?;
+                    }
+                    b.write(&mut olock, pretty_print)
+                })?;
+                let mut olock = stdout.lock();
+                if !(first_sudoku || pretty_print) {
+                    writeln!(olock)?;
+                }
+                writeln!(olock, "solutions: {}", solutions)?;
                 while iter
                     .peek()
                     .is_some_and(|result| result.as_ref().is_ok_and(|&byte| byte.is_ascii_whitespace()))
@@ -629,7 +627,7 @@ fn filter_solve(pretty: bool) -> std::io::Result<()> {
             }
             Err(result) => match result {
                 Some(err) => return Err(err),
-                None => writeln!(std::io::stderr().lock(), "invalid sudoku!")?,
+                None => writeln!(stderr.lock(), "invalid sudoku!")?,
             },
         }
     }
