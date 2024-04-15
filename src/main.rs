@@ -580,12 +580,10 @@ mod lib {
 
 #[inline(always)]
 #[allow(clippy::write_with_newline)]
-fn filter_solve(pretty_print: bool) -> std::io::Result<()> {
+fn filter_solve(stdout: &std::io::Stdout, stderr: &std::io::Stderr, pretty_print: bool) -> std::io::Result<()> {
     use lib::*;
     use std::io::{Read, Write};
 
-    let stdout = std::io::stdout();
-    let stderr = std::io::stderr();
     let mut iter = std::io::stdin().lock().bytes().peekable();
     let mut first_sudoku = true;
     while iter.peek().is_some() {
@@ -622,12 +620,12 @@ fn filter_solve(pretty_print: bool) -> std::io::Result<()> {
 }
 
 #[inline(always)]
-fn print_help() -> std::io::Result<()> {
+fn print_help(stdout: &std::io::Stdout) -> std::io::Result<()> {
     use std::io::Write;
 
     const NAME: &str = env!("CARGO_PKG_NAME");
     writeln!(
-        std::io::stdout().lock(),
+        stdout.lock(),
         "{NAME} v{} by {}.\n  {}\n\
          USAGE:\n  \
            {NAME} [OPTIONS] < input_file [> output_file]\n\
@@ -647,6 +645,7 @@ fn print_help() -> std::io::Result<()> {
 fn main() -> std::io::Result<()> {
     use std::io::Write;
 
+    let stdout = std::io::stdout();
     let stderr = std::io::stderr();
     let mut help = false;
     let mut pretty_print = true;
@@ -658,8 +657,8 @@ fn main() -> std::io::Result<()> {
         }
     }
     if help {
-        print_help()
+        print_help(&stdout)
     } else {
-        filter_solve(pretty_print)
+        filter_solve(&stdout, &stderr, pretty_print)
     }
 }
