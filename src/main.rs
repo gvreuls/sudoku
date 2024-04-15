@@ -626,28 +626,22 @@ fn print_help() -> std::io::Result<()> {
     use std::io::Write;
 
     const NAME: &str = env!("CARGO_PKG_NAME");
-    let mut olock = std::io::stdout().lock();
-    write!(
-        olock,
-        "{} v{} by {}.\n  {}\n",
-        NAME,
+    writeln!(
+        std::io::stdout().lock(),
+        "{NAME} v{} by {}.\n  {}\n\
+         USAGE:\n  \
+           {NAME} [OPTIONS] < input_file [> output_file]\n\
+         OPTIONS:\n  \
+           -h, --help\tPrints this text and exits.\n  \
+           -r, --raw\tPrints solutions without whitespace.\n\
+         FILE FORMAT:\n  \
+           * Sudokus consist of 81 cell characters optionally separated by whitespace.\n  \
+           * Valid cell characters are '1' through '9' and '.' indicating an empty cell.\n  \
+           * Files can contain multiple sudokus.",
         env!("CARGO_PKG_VERSION"),
         env!("CARGO_PKG_AUTHORS"),
         env!("CARGO_PKG_DESCRIPTION")
-    )?;
-    write!(olock, "USAGE:\n  {} [OPTIONS] < input_file [> output_file]\n", NAME)?;
-    write!(
-        olock,
-        "OPTIONS:\n  -h, --help\tPrints this text and exits.\n  \
-                     -r, --raw\tPrints solutions without whitespace.\n"
-    )?;
-    writeln!(
-        olock,
-        "FILE FORMAT:\n  * Sudokus consist of 81 cell characters optionally separated by whitespace.\n  \
-                         * Valid cell characters are '1' through '9' and '.' indicating an empty cell.\n  \
-                         * Files can contain multiple sudokus."
-    )?;
-    Ok(())
+    )
 }
 
 fn main() -> std::io::Result<()> {
