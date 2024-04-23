@@ -1,6 +1,6 @@
 [package]
 name = "sudoku"
-version = "0.2.1"
+version = "0.2.2"
 authors = ["Guy Vreuls"]
 description = "A sudoku solving filter."
 edition = "2021"
