@@ -625,9 +625,12 @@ fn print_help(stdout: &std::io::Stdout) -> std::io::Result<()> {
     use std::io::Write;
 
     const NAME: &str = env!("CARGO_PKG_NAME");
+    const VERSION: &str = env!("CARGO_PKG_VERSION");
+    const DESCRIPTION: &str = env!("CARGO_PKG_DESCRIPTION");
+    let authors = env!("CARGO_PKG_AUTHORS").replace(":", ", ");
     writeln!(
         stdout.lock(),
-        "{NAME} v{} by {}.\n  {}\n\
+        "{NAME} v{VERSION} by {authors}.\n  {DESCRIPTION}\n\
          USAGE:\n  \
            {NAME} [OPTIONS] < input_file [> output_file]\n\
          OPTIONS:\n  \
@@ -636,10 +639,7 @@ fn print_help(stdout: &std::io::Stdout) -> std::io::Result<()> {
          FILE FORMAT:\n  \
            * Sudokus consist of 81 cell characters optionally separated by whitespace.\n  \
            * Valid cell characters are '1' through '9' and '.' indicating an empty cell.\n  \
-           * Files can contain multiple sudokus.",
-        env!("CARGO_PKG_VERSION"),
-        env!("CARGO_PKG_AUTHORS"),
-        env!("CARGO_PKG_DESCRIPTION")
+           * Files can contain multiple sudokus."
     )
 }
 
