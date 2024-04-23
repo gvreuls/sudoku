@@ -286,7 +286,8 @@ mod lib {
                     coords = next;
                 } else {
                     f(board)?;
-                    return Ok(1);
+                    solutions = 1;
+                    break;
                 }
             }
             Ok(solutions)
