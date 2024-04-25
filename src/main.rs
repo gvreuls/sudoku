@@ -2,8 +2,8 @@ mod lib {
     const ROOT: usize = 3;
     const DIM: usize = ROOT * ROOT;
     const DIM2: usize = DIM * DIM;
-    const BEST_THRESHOLD_MAX: u32 = (DIM * ROOT) as u32;
-    const BEST_THRESHOLD_MIN: u32 = (DIM * (ROOT - 1) + 1) as u32;
+    const BEST_THRESHOLD_MAX: u32 = ((DIM - 1) * (ROOT + 1)) as u32;
+    const BEST_THRESHOLD_MIN: u32 = (DIM + DIM - 1) as u32;
 
     #[derive(Debug, Clone, Copy)]
     pub struct Coords {
