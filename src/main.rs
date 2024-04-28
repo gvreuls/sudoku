@@ -627,7 +627,7 @@ fn print_help(stdout: &std::io::Stdout) -> std::io::Result<()> {
     const NAME: &str = env!("CARGO_PKG_NAME");
     const VERSION: &str = env!("CARGO_PKG_VERSION");
     const DESCRIPTION: &str = env!("CARGO_PKG_DESCRIPTION");
-    let authors = env!("CARGO_PKG_AUTHORS").replace(":", ", ");
+    let authors = env!("CARGO_PKG_AUTHORS").replace(':', ", ");
     writeln!(
         stdout.lock(),
         "{NAME} v{VERSION} by {authors}.\n  {DESCRIPTION}\n\
