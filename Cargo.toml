@@ -4,6 +4,7 @@ version = "0.2.2"
 authors = ["Guy Vreuls"]
 description = "A sudoku solving filter."
 edition = "2021"
+license-file = "gnu-gpl-v3.0.md"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
